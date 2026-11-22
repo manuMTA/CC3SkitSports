@@ -1,0 +1,9 @@
+{
+  "name": "suivi-triathlon",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Suivi d'entraînement triathlon connecté à Strava",
+  "engines": { "node": ">=18" },
+  "scripts": { "dev": "vercel dev" }
+}

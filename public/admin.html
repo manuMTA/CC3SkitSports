@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration — Suivi Triathlon</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo"><i style="background:var(--swim)"></i><i style="background:var(--bike)"></i><i style="background:var(--run)"></i></span>Suivi Triathlon · Administration</div>
+  <div class="user-chip"><a class="btn sm" href="/">← Mon tableau de bord</a></div>
+</header>
+<main id="app"><div class="card empty"><span class="spin"></span><p class="sub mt">Chargement…</p></div></main>
+
+<script>
+"use strict";
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dfFull = new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"short",year:"numeric"});
+const dfTime = new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+const DAY = 86400000;
+const A = { users:[], me:null, flash:null, search:"", group:"" };
+
+async function api(path, opts={}){
+  const r = await fetch(path, Object.assign({credentials:"same-origin", headers:{"Content-Type":"application/json"}}, opts));
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok){ const e = new Error(data.error || "Erreur réseau"); e.status = r.status; throw e; }
+  return data;
+}
+async function load(){
+  try {
+    const d = await api("/api/admin/users");
+    A.users = d.users; A.me = d.me; render();
+  } catch(e){
+    const msg = e.status===401 ? "Connectez-vous d’abord avec votre compte Strava." : e.status===403 ? "Cette page est réservée aux administrateurs." : e.message;
+    $("#app").innerHTML = `<div class="card empty"><h1>Accès impossible</h1><p class="sub">${esc(msg)}</p><div class="actions"><a class="btn primary" href="/">Aller à l’accueil</a></div></div>`;
+  }
+}
+function name(u){ return [u.firstname, u.lastname].filter(Boolean).join(" ") || "Athlète "+u.id; }
+
+function render(){
+  const now = Date.now();
+  const groups = [...new Set(A.users.map(u=>u.group_name).filter(Boolean))].sort();
+  const q = A.search.toLowerCase();
+  const list = A.users.filter(u => (!q || name(u).toLowerCase().includes(q) || (u.city||"").toLowerCase().includes(q)) && (!A.group || (A.group==="—" ? !u.group_name : u.group_name===A.group)));
+  const synced7 = A.users.filter(u=>u.last_sync && now-new Date(u.last_sync).getTime() < 7*DAY).length;
+  const new30 = A.users.filter(u=>now-new Date(u.created_at).getTime() < 30*DAY).length;
+  $("#app").innerHTML = `${A.flash?`<div class="note ${A.flash.type}" style="margin-bottom:16px">${esc(A.flash.msg)}</div>`:""}
+    <h1>Utilisateurs</h1>
+    <p class="sub">Personnes ayant connecté leur compte Strava. Leurs statistiques restent privées : selon les règles de Strava, chacun ne voit que ses propres données.</p>
+    <div class="grid g4 mt">
+      <div class="card kpi"><div class="lbl">Utilisateurs</div><div class="val">${A.users.length}</div><div class="meta">comptes connectés</div></div>
+      <div class="card kpi"><div class="lbl">Nouveaux (30 jours)</div><div class="val">${new30}</div><div class="meta">inscriptions récentes</div></div>
+      <div class="card kpi"><div class="lbl">Actifs (7 jours)</div><div class="val">${synced7}</div><div class="meta">synchronisés récemment</div></div>
+      <div class="card kpi"><div class="lbl">Groupes</div><div class="val">${groups.length}</div><div class="meta">${groups.slice(0,3).map(esc).join(", ") || "aucun"}</div></div>
+    </div>
+    <div class="card mt">
+      <div class="toolbar" style="margin:0 0 10px">
+        <input id="q" class="btn" style="cursor:text;min-width:220px" placeholder="Rechercher un nom, une ville…" value="${esc(A.search)}">
+        <select id="g" class="btn"><option value="">Tous les groupes</option>${groups.map(g=>`<option ${A.group===g?"selected":""}>${esc(g)}</option>`).join("")}<option value="—" ${A.group==="—"?"selected":""}>Sans groupe</option></select>
+        <span class="tooltip-hint">${list.length} affiché(s)</span>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Utilisateur</th><th>Ville</th><th>Groupe</th><th>Inscrit le</th><th>Dernière synchro</th><th></th></tr></thead>
+        <tbody>${list.map(u=>{
+          const ls = u.last_sync ? new Date(u.last_sync).getTime() : 0;
+          const pill = !ls ? `<span class="pill">jamais</span>` : now-ls<7*DAY ? `<span class="pill live">${dfTime.format(ls)}</span>` : now-ls<30*DAY ? `<span class="pill">${dfTime.format(ls)}</span>` : `<span class="pill warn">${dfTime.format(ls)}</span>`;
+          return `<tr>
+            <td>${u.profile && /^https:/.test(u.profile)?`<img class="avatar" src="${esc(u.profile)}" alt="">`:""}<b>${esc(name(u))}</b>${u.id===A.me?` <span class="pill">vous</span>`:""}<br><a class="strava-link" style="margin:0" href="https://www.strava.com/athletes/${u.id}" target="_blank" rel="noopener">Profil Strava</a></td>
+            <td>${esc(u.city||"–")}</td>
+            <td><input class="group-input" data-id="${u.id}" value="${esc(u.group_name||"")}" placeholder="Ajouter…" list="groups"></td>
+            <td>${dfFull.format(new Date(u.created_at))}</td>
+            <td>${pill}</td>
+            <td style="text-align:right">${u.id===A.me?"":`<button class="btn sm danger" data-del="${u.id}">Retirer</button>`}</td>
+          </tr>`; }).join("") || `<tr><td colspan="6" class="sub" style="padding:28px;text-align:center">Aucun utilisateur. Partagez l’adresse du site : chaque personne qui se connecte avec Strava apparaîtra ici.</td></tr>`}
+        </tbody></table></div>
+      <datalist id="groups">${groups.map(g=>`<option value="${esc(g)}">`).join("")}</datalist>
+    </div>`;
+  const qi = $("#q");
+  qi.oninput = ()=>{ A.search = qi.value; render(); const n=$("#q"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); };
+  $("#g").onchange = e => { A.group = e.target.value; render(); };
+  document.querySelectorAll(".group-input").forEach(inp=>{
+    inp.onchange = async ()=>{
+      const id = Number(inp.dataset.id), v = inp.value.trim();
+      try { await api("/api/admin/users", {method:"PATCH", body:JSON.stringify({id, group_name:v})}); const u=A.users.find(x=>x.id===id); if(u) u.group_name=v; A.flash={type:"ok",msg:"Groupe enregistré."}; }
+      catch(e){ A.flash={type:"err",msg:e.message}; }
+      render();
+    };
+    inp.onkeydown = e => { if (e.key==="Enter") inp.blur(); };
+  });
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>confirmDelete(Number(b.dataset.del)));
+}
+function confirmDelete(id){
+  const u = A.users.find(x=>x.id===id); if (!u) return;
+  const bg = document.createElement("div"); bg.className = "modal-bg";
+  bg.innerHTML = `<div class="modal"><h2>Retirer ${esc(name(u))} ?</h2><p>L’accès Strava de cette personne sera révoqué et ses données effacées de l’application. Son compte Strava n’est pas touché ; elle pourra se reconnecter plus tard.</p><div class="actions"><button class="btn" data-x>Annuler</button><button class="btn primary" data-ok>Retirer</button></div></div>`;
+  document.body.appendChild(bg);
+  bg.querySelector("[data-x]").onclick = ()=>bg.remove();
+  bg.onclick = e => { if (e.target===bg) bg.remove(); };
+  bg.querySelector("[data-ok]").onclick = async ()=>{
+    bg.remove();
+    try { await api("/api/admin/users?id="+id, {method:"DELETE"}); A.users = A.users.filter(x=>x.id!==id); A.flash={type:"ok",msg:"Utilisateur retiré."}; }
+    catch(e){ A.flash={type:"err",msg:e.message}; }
+    render();
+  };
+}
+load();
+</script>
+</body>
+</html>
