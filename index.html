@@ -1053,7 +1053,7 @@ function accountsView(){
 }
 
 /* ===================== Modales ===================== */
-function openModal(html){ $modal.innerHTML = `<div class="modal-bg" data-a="mclose"><div class="modal" onclick="event.stopPropagation()">${html}</div></div>`; }
+function openModal(html){ $modal.innerHTML = `<div class="modal-bg" data-a="mclose"><div class="modal">${html}</div></div>`; }
 function closeModal(){ $modal.innerHTML = ''; }
 let pendingConfirm = null;
 function confirmBox(text, fn){
@@ -1168,7 +1168,7 @@ document.addEventListener('click', e => {
       confirmBox(`Retirer « ${t.title} » de la bibliothèque ?`, () => { state.library.sessions = state.library.sessions.filter(x => x !== t); save(); render(); }); break; }
     case 'savetpl': state.library.sessions.push({id:'t-'+uid(), sport:s.sport, title:SPORTS[s.sport].label + ' — ' + (s.title || 'Séance'), desc:'Séance enregistrée par le coach', blocks:cloneBlocks(s.blocks), custom:true}); save(); toast('Ajoutée aux séances types'); break;
     case 'stravasync': stravaSync(); break;
-    case 'mclose': closeModal(); break;
+    case 'mclose': if (el.classList.contains('modal-bg') && e.target !== el) break; closeModal(); break;
     case 'myes': { const fn = pendingConfirm; pendingConfirm = null; closeModal(); if (fn) fn(); break; }
     case 'delsess': confirmBox('Supprimer définitivement cette séance et son bilan ?', () => { state.sessions = state.sessions.filter(x => x !== s); save(); ui.sessionId = null; render(); }); break;
     case 'badd': s.blocks.push(block('', 1, [step('', 'Z1')])); save(); render(); break;
