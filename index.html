@@ -450,15 +450,18 @@ async function flush(){
   saving = true;
   try {
     snap.sessions = await diffSync(state.sessions, snap.sessions, sessTo, 'sessions');
+    // Profils : uniquement des mises à jour (jamais de création depuis le navigateur)
+    for (const u of state.users){
+      const v = J(userTo(u));
+      if (snap.users.get(u.id) === v) continue;
+      const row = me.role === 'coach' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2};
+      const r = await sb.from('profiles').update(row).eq('id', u.id);
+      if (r.error) throw r.error;
+      snap.users.set(u.id, v);
+    }
     if (me.role === 'coach'){
-      snap.users = await diffSync(state.users.filter(u => u.id !== me.id), new Map([...snap.users].filter(([id]) => id !== me.id)), userTo, 'profiles');
-      const mine = getUser(me.id), v = J(userTo(mine));
-      snap.users.set(me.id, v);
       snap.libS = await diffSync(state.library.sessions, snap.libS, libSTo, 'library_sessions');
       snap.libP = await diffSync(state.library.plans, snap.libP, libPTo, 'library_plans');
-    } else {
-      const u = getUser(me.id), v = J(userTo(u));
-      if (snap.users.get(u.id) !== v){ const r = await sb.from('profiles').update({hr_z1:u.hr.z1, hr_z2:u.hr.z2}).eq('id', u.id); if (r.error) throw r.error; snap.users.set(u.id, v); }
     }
     dirty = false; setStatus('Enregistré');
   } catch(e){ console.error(e); setStatus('Erreur d\'enregistrement'); toast('Enregistrement impossible : ' + (e.message || e)); }
