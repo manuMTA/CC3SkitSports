@@ -360,6 +360,18 @@ table.stt tfoot td{font-weight:700;background:#f7f9fa}
 .expk button:hover{border-color:var(--accent);background:#f4f8fb}
 .expk svg{width:78px;height:auto;display:block;border-radius:6px}
 .expk b{font-size:.85rem;display:block}
+/* Nouvelle séance : 4 façons de créer */
+.sportpick.sel button{opacity:.55}
+.sportpick.sel button.on{opacity:1;box-shadow:0 0 0 2px currentColor inset}
+.newopts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 4px}
+.newopts button,.newopts label{border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 10px;text-align:left;cursor:pointer;font-weight:600;font-size:.85rem;display:block}
+.newopts button:hover,.newopts label:hover{border-color:var(--accent);background:#f4f8fb}
+.newopts small{display:block;font-weight:400;color:var(--muted);font-size:.72rem;margin-top:2px}
+.simpz{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 6px}
+.simpz .zc{border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff}
+.simpz label{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+.simpz input{font-size:1rem!important;font-weight:700;text-align:center}
+@media (max-width:700px){.newopts{grid-template-columns:1fr}.simpz{grid-template-columns:1fr}}
 /* Profil & zones */
 .prof{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prof .pane h4{display:flex;align-items:center;gap:6px}
@@ -402,6 +414,16 @@ table.it td.na{color:#c3ccd5}
   .shead{grid-template-columns:1fr 1fr}
   .shead .field:first-child{grid-column:1/-1}
 }
+.locked{opacity:.55;cursor:not-allowed!important}
+.locked::after{content:" 🔒";font-size:.72em}
+.ib.locked::after{content:none}
+.lockbox{border:1px dashed #c9a94a;background:#fffaf0;border-radius:10px;padding:14px 16px;margin:10px 0;display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+.lockbox span{color:var(--muted)}
+.lockbox.sm{padding:8px 12px;font-size:.82rem;margin:6px 0}
+.licwarn{background:#fdecea;color:#8a1c14;padding:6px 12px;text-align:center;font-size:.85rem}
+.licrow{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:.88rem}
+.lictab td,.lictab th{padding:3px 8px;font-size:.82rem}
+.lictab .curcol{background:#eef6fb;font-weight:600}
 </style>
 </head>
 <body>
@@ -802,24 +824,25 @@ function defaultLibrary(){
 /* ===================== Données serveur (Supabase) ===================== */
 const CFG = window.SUIVITRI_CONFIG || {};
 const sb = (window.supabase && CFG.supabaseUrl) ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey, { auth: { flowType: 'implicit', detectSessionInUrl: true, persistSession: true } }) : null;
+const PAY_LINKS = () => (CFG.paiementStandard || CFG.paiementComplete) ? {standard:CFG.paiementStandard, complete:CFG.paiementComplete} : null;
 const SITE_URL = (CFG.siteUrl || (location.origin + location.pathname)).replace(/index\.html$/, '');
 let snap = {sessions:new Map(), users:new Map(), libS:new Map(), libP:new Map()};
 const J = o => JSON.stringify(o);
 
-const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync});
-const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}});
+const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null});
+const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null});
 const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id});
 const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan});
-const libSFrom = r => ({id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom, cat:r.cat || undefined, lvl:r.lvl || undefined});
+const libSFrom = r => ({ownerId:r.owner_id, id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom, cat:r.cat || undefined, lvl:r.lvl || undefined});
 const libSTo = t => ({id:t.id, sport:t.sport, title:t.title, descr:t.desc || '', blocks:t.blocks, custom:!!t.custom, cat:t.cat || null, lvl:t.lvl || null});
-const libPFrom = r => ({id:r.id, title:r.title, desc:r.descr, weeks:r.weeks});
+const libPFrom = r => ({ownerId:r.owner_id, id:r.id, title:r.title, desc:r.descr, weeks:r.weeks});
 const libPTo = p => ({id:p.id, title:p.title, descr:p.desc || '', weeks:p.weeks});
 
 function takeSnapshot(){
   snap.sessions = new Map(state.sessions.map(s => [s.id, J(sessTo(s))]));
   snap.users = new Map(state.users.map(u => [u.id, J(userTo(u))]));
   snap.libS = new Map(state.library.sessions.filter(t => !t.builtin).map(t => [t.id, J(libSTo(t))]));
-  snap.libP = new Map(state.library.plans.map(p => [p.id, J(libPTo(p))]));
+  snap.libP = new Map(state.library.plans.filter(p => !p.builtin).map(p => [p.id, J(libPTo(p))]));
 }
 async function loadAll(){
   const [p, s, ls, lp] = await Promise.all([
@@ -833,13 +856,15 @@ async function loadAll(){
   // le catalogue est intégré au site : les anciennes copies en base sont retirées, les séances perso gardées
   const stale = state.library.sessions.filter(t => builtinIds().has(t.id) && !t.custom).map(t => t.id);
   mergeLibrary(state.library);
-  if (me.role === 'coach' && stale.length) await sb.from('library_sessions').delete().in('id', stale);
-  if (me.role === 'coach' && !state.library.plans.length){
-    const d = defaultLibrary(); state.library.plans = d.plans;
-    await sb.from('library_plans').insert(d.plans.map(libPTo));
-  }
+  if (stale.length) await sb.from('library_sessions').delete().in('id', stale);
+  // plans types fournis : intégrés au site (plus en base), les plans perso restent propres à leur auteur
+  const dp = defaultLibrary().plans, dpIds = new Set(dp.map(p => p.id));
+  const staleP = state.library.plans.filter(p => dpIds.has(p.id)).map(p => p.id);
+  state.library.plans = [...dp.map(p => ({...p, builtin:true})), ...state.library.plans.filter(p => !dpIds.has(p.id))];
+  if (staleP.length) await sb.from('library_plans').delete().in('id', staleP);
   takeSnapshot();
-  if (me.role === 'coach' && addLibraryInts(state.library.sessions)){ save(); setTimeout(() => toast('Séances types mises à jour avec les intensités I1–I7'), 400); }
+  refreshLicense();
+  if (has('customLib') && addLibraryInts(state.library.sessions.filter(t => !t.builtin))){ save(); setTimeout(() => toast('Séances types mises à jour avec les intensités I1–I7'), 400); }
 }
 // Envoie au serveur uniquement ce qui a changé depuis le dernier enregistrement
 async function diffSync(list, map, toRow, table){
@@ -862,14 +887,14 @@ async function flush(){
     for (const u of state.users){
       const v = J(userTo(u));
       if (snap.users.get(u.id) === v) continue;
-      const row = me.role === 'coach' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
+      const row = me.role === 'coach' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
       const r = await sb.from('profiles').update(row).eq('id', u.id);
       if (r.error) throw r.error;
       snap.users.set(u.id, v);
     }
-    if (me.role === 'coach'){
+    if (has('customLib')){
       snap.libS = await diffSync(state.library.sessions.filter(t => !t.builtin), snap.libS, libSTo, 'library_sessions');
-      snap.libP = await diffSync(state.library.plans, snap.libP, libPTo, 'library_plans');
+      snap.libP = await diffSync(state.library.plans.filter(p => !p.builtin), snap.libP, libPTo, 'library_plans');
     }
     dirty = false; setStatus('Enregistré');
   } catch(e){ console.error(e); setStatus('Erreur d\'enregistrement'); toast('Enregistrement impossible : ' + (e.message || e)); }
@@ -911,6 +936,20 @@ function stepSec(st, sport, u){
 const ctxUser = s => (s && s.athleteId) ? getUser(s.athleteId) : (ui.athleteId ? getUser(ui.athleteId) : (me && me.role !== 'coach' ? getUser(me.id) : null));
 const estTxt = (st, s) => { const d = stepSec(st, s.sport, ctxUser(s)); return d > 0 ? '≈ ' + fmtEst(d) : '← saisir'; };
 const fmtEst = sec => { sec = Math.round(sec); return sec >= 3600 ? Math.floor(sec/3600) + ':' + String(Math.floor(sec%3600/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0') : mmss(sec); };
+
+const SIMPLE_INT = {Z1:'I2', Z2:'I4', Z3:'I5'};
+const isSimple = s => s.blocks.length === 1 && s.blocks[0].simple === true;
+function simpleBlock(){ return Object.assign(block('Temps par zone', 1, ZONES.map(z => { const st = step('', z, {autre:'temps en ' + z}); setStepInt(st, SIMPLE_INT[z]); return st; })), {simple:true}); }
+const secToDur = sec => { sec = Math.round(sec); if (!sec) return ''; const hh = Math.floor(sec/3600), mm = Math.floor(sec%3600/60), ss = sec%60;
+  return hh ? hh + ':' + String(mm).padStart(2,'0') + ':' + String(ss).padStart(2,'0') : mm + ':' + String(ss).padStart(2,'0'); };
+function simpleEditorHTML(s, ro){
+  const b = s.blocks[0];
+  return `<div class="simpz">${ZONES.map((z, i) => { const st = b.steps[i] || {}; const sec = parseMS(st.dur);
+    return `<div class="zc"><label><span class="zchip z${z}">${z}</span><span>${{Z1:'endurance (I1–I2)', Z2:'tempo / seuil (I3–I4)', Z3:'au-dessus du seuil (I5–I7)'}[z]}</span></label>
+      <input placeholder="h:mm" data-f="simple" data-i="${i}" value="${sec ? hmStr(sec) : ''}" ${ro}></div>`; }).join('')}</div>
+    <div class="row" style="justify-content:space-between"><span class="ztxt" style="font-size:.72rem">Séance simple : saisissez seulement le temps prévu dans chaque zone (« 45 » = 45 min, « 1:15 » = 1 h 15).</span>
+      ${ro ? '' : '<button class="lk" data-a="todetail">Passer en séance détaillée (blocs)</button>'}</div>`;
+}
 
 function plannedZones(s){
   const z = {Z1:0,Z2:0,Z3:0};
@@ -979,6 +1018,7 @@ const canEdit = s => me && (me.role === 'coach' || s.athleteId === me.id);
 const $app = document.getElementById('app'), $modal = document.getElementById('modal');
 
 function render(){
+  refreshLicense();
   if (!me){ $app.innerHTML = loginView(); return; }
   if (!state){ $app.innerHTML = '<div class="loading">Chargement…</div>'; return; }
   if (me.role !== 'coach' && !me.approved){ $app.innerHTML = pendingView(); return; }
@@ -996,6 +1036,7 @@ function render(){
     <button class="btn dark sm" data-a="logout">Déconnexion</button>
   </div></div>
   <div class="wrap">
+    ${LIC.warn ? `<div class="licwarn">${esc(LIC.warn)}</div>` : ''}
     ${body}
   </div>`;
 }
@@ -1034,7 +1075,7 @@ function loginView(){
 function pendingView(){
   return `<div class="login"><div class="card">
     <h1>Bienvenue ${esc((me.name || '').split(' ')[0])}</h1>
-    <p>Votre compte est créé. Il doit maintenant être <b>validé par votre coach</b> avant que vous accédiez à vos séances.</p>
+    <p>Votre compte n'est pas actif pour le moment (en attente ou suspendu). Contactez votre coach.</p>
     ${me.strava ? '<p class="ok">✓ Compte Strava relié : vos activités seront importées.</p>' : `<button class="sbtn" data-a="stravalink">Relier mon compte Strava dès maintenant</button>`}
     <div class="row" style="margin-top:14px"><button class="btn" data-a="refresh">Vérifier à nouveau</button><button class="btn ghost" data-a="logout">Déconnexion</button></div>
   </div></div>`;
@@ -1051,7 +1092,7 @@ function weekNav(){
     <div class="label">${weekLabel(ui.week)}</div>
     <button class="btn sm" data-a="wnext">▶</button>
     <button class="btn sm ghost" data-a="wtoday">Cette semaine</button>
-    ${me && me.role === 'coach' && ui.view === 'athlete' && ui.tab === 'agenda' ? '<button class="btn sm" style="margin-left:auto" data-a="saveplan">★ Enregistrer comme plan type</button>' : ''}
+    ${me && (me.role !== 'coach' || ui.view === 'athlete') && ui.tab === 'agenda' ? '<button class="btn sm" style="margin-left:auto" data-a="saveplan">★ Enregistrer comme plan type</button>' : ''}
   </div>`;
 }
 
@@ -1060,6 +1101,89 @@ function subNav(key, opts){
   if (!opts.some(o => o[0] === ui[key])) ui[key] = opts[0][0];
   return `<div class="seg subnav">${opts.map(([k, l]) => `<button class="${ui[key] === k ? 'on' : ''}" data-a="sub" data-k="${key}" data-v="${k}">${l}</button>`).join('')}</div>`;
 }
+
+/* ===================== Licences ===================== */
+// Répartition des fonctionnalités par licence : c'est le SEUL endroit à modifier.
+const FEATURES = {
+  agenda:'Agenda et séances', simple:'Séances simples (temps Z1, Z2, Z3)', bilan:'Bilans séance, semaine et mois', fileImport:'Import GPX / TCX', profil:'Profil et zones',
+  detail:'Séances détaillées (blocs, intensités, graphique)', library:'Bibliothèque de séances types', stats:'Statistiques et évolution', plans:'Plans types course à pied et générateur', customLib:'Enregistrer ses séances et plans types',
+  plansTri:'Plans triathlon et Ironman M, L, XXL', exercises:'Exercices animés', stravaAuto:'Connexion Strava automatique'
+};
+const LIC_BASE = ['agenda','simple','bilan','fileImport','profil'];
+const LIC_STD = [...LIC_BASE, 'detail','library','stats','plans','customLib'];
+const LICENSES = {
+  basique:  {label:'Basique',  features: LIC_BASE},
+  standard: {label:'Standard', features: LIC_STD},
+  complete: {label:'Complète', features: [...LIC_STD, 'plansTri','exercises','stravaAuto']}
+};
+const TIERS = Object.keys(LICENSES);
+function licFor(tier, extra){
+  const t = LICENSES[tier] ? tier : 'basique', L = LICENSES[t];
+  return Object.assign({tier:t, label:L.label, features:new Set(L.features), expires:'', warn:''}, extra || {});
+}
+let LIC = licFor('basique');
+const todayYmd = () => new Date().toISOString().slice(0, 10);
+// Licence effective d'un compte : le coach a tout ; une licence échue redevient basique
+function tierOf(u){
+  if (!u) return 'basique';
+  if (u.role === 'coach') return 'complete';
+  if (u.licenseUntil && u.licenseUntil < todayYmd()) return 'basique';
+  return LICENSES[u.license] ? u.license : 'basique';
+}
+function refreshLicense(){
+  const u = me, t = tierOf(u);
+  const expired = u && u.role !== 'coach' && u.license && u.license !== 'basique' && t === 'basique';
+  LIC = licFor(t, {expires: u && u.licenseUntil || '', warn: expired ? `Votre licence ${LICENSES[u.license].label} a expiré le ${new Date(u.licenseUntil).toLocaleDateString('fr-FR')} : vous êtes repassé(e) en Basique.` : ''});
+}
+const has = f => LIC.features.has(f);
+const minTier = f => TIERS.find(t => LICENSES[t].features.includes(f)) || 'complete';
+function lockBox(f, compact){
+  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Disponible avec la licence ${LICENSES[minTier(f)].label}. Votre licence : ${LIC.label}.${me && me.role !== 'coach' ? ' <a href="#" data-a="sub" data-k="psub" data-v="abo" onclick="ui.tab=\'param\'">Changer de licence</a>' : ''}</span></div>`;
+}
+// Boutons et actions soumis à licence
+const ACTION_FEAT = {newdetail:'detail', badd:'detail', todetail:'detail', loadtpl:'library', savetpl:'customLib', saveplan:'customLib',
+  preset:'plansTri', stravasync:'stravaAuto', stravalink:'stravaAuto', expick0:'exercises', exshow:'exercises'};
+function markLocked(){
+  document.querySelectorAll('[data-a]').forEach(el => {
+    const f = ACTION_FEAT[el.dataset.a];
+    if (f && !has(f)){ if (!el.classList.contains('locked')){ el.classList.add('locked'); el.title = '🔒 ' + FEATURES[f] + ' : licence ' + LICENSES[minTier(f)].label; } }
+    else if (el.classList.contains('locked')) el.classList.remove('locked');
+  });
+}
+let _lockRaf = 0;
+new MutationObserver(() => { if (!_lockRaf) _lockRaf = requestAnimationFrame(() => { _lockRaf = 0; markLocked(); }); }).observe(document.documentElement, {childList:true, subtree:true});
+function lockedModal(f){ openModal(`<h3>Fonction non incluse</h3>${lockBox(f)}<div style="text-align:right;margin-top:10px"><button class="btn" data-a="mclose">Fermer</button></div>`); }
+function featTable(cur){
+  const rows = Object.keys(FEATURES).map(f => `<tr><td>${esc(FEATURES[f])}</td>${TIERS.map(t => `<td style="text-align:center" class="${t === cur ? 'curcol' : ''}">${LICENSES[t].features.includes(f) ? '✓' : '—'}</td>`).join('')}</tr>`).join('');
+  return `<table class="rep lictab"><thead><tr><th></th>${TIERS.map(t => `<th style="text-align:center" class="${t === cur ? 'curcol' : ''}">${LICENSES[t].label}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+// Écran « Abonnement » (Paramétrage)
+function aboView(aid){
+  const u = getUser(aid), t = tierOf(u), mine = aid === me.id && me.role !== 'coach';
+  const links = PAY_LINKS();
+  const btn = tier => {
+    if (TIERS.indexOf(tier) <= TIERS.indexOf(t)) return '';
+    return `<button class="btn primary" data-a="upgrade" data-v="${tier}">Passer en ${LICENSES[tier].label}</button>`;
+  };
+  return `<div class="pane dense"><h4>Abonnement</h4>
+    <div class="licrow"><span>${mine ? 'Votre licence' : 'Licence de ' + esc(u.name)} : <b>${LICENSES[t].label}</b>${u.role !== 'coach' && u.licenseUntil ? ' · jusqu\'au ' + new Date(u.licenseUntil).toLocaleDateString('fr-FR') : ''}</span>
+    ${mine ? btn('standard') + btn('complete') : (me.role === 'coach' && u.role !== 'coach' ? '<span class="ztxt">La licence se modifie dans l\'écran Comptes.</span>' : '')}</div>
+    ${mine && t !== 'complete' && !links ? '<p class="ztxt" style="margin:6px 0 0">Le paiement en ligne n\'est pas encore ouvert : contactez votre coach pour changer de licence.</p>' : ''}
+    <div style="margin-top:8px">${featTable(t)}</div>
+  </div>`;
+}
+function licSelectHTML(u){
+  if (u.role === 'coach') return '<span class="ztxt">Complète</span>';
+  return `<div style="display:flex;gap:4px;align-items:center"><select data-lic="${u.id}" style="width:auto!important">${TIERS.map(t => `<option value="${t}" ${t === (u.license || 'basique') ? 'selected' : ''}>${LICENSES[t].label}</option>`).join('')}</select>
+    <input type="date" data-licu="${u.id}" value="${u.licenseUntil || ''}" title="Fin de licence (vide = sans échéance)" style="width:132px!important">${tierOf(u) !== (u.license || 'basique') ? ' <span class="warn">échue</span>' : ''}</div>`;
+}
+document.addEventListener('change', e => {
+  const el = e.target, id = el.dataset.lic || el.dataset.licu; if (!id || !me || me.role !== 'coach') return;
+  const u = getUser(id); if (!u) return;
+  if (el.dataset.lic) u.license = el.value; else u.licenseUntil = el.value || null;
+  save(); render(); toast(`${u.name} : licence ${LICENSES[tierOf(u)].label}`);
+});
+
 function athleteView(){
   const aid = me.role === 'coach' ? ui.athleteId : me.id;
   const a = getUser(aid);
@@ -1071,12 +1195,13 @@ function athleteView(){
     : '';
   let body;
   if (ui.tab === 'stats'){
-    body = subNav('ssub', [['evol','Évolution'],['mois','Bilan du mois']]) + (ui.ssub === 'mois' ? monthNav() + monthBilanView(aid) : statsView(aid));
+    if (!has('stats') && !ui.ssub) ui.ssub = 'mois';
+    body = subNav('ssub', [['evol','Évolution'],['mois','Bilan du mois']]) + (ui.ssub === 'mois' ? monthNav() + monthBilanView(aid) : (has('stats') ? statsView(aid) : lockBox('stats')));
   } else if (ui.tab === 'biblio'){
     body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices']]) +
-      (ui.bsub === 'plans' ? libPlansView(aid) : ui.bsub === 'exercices' ? exercisesView() : libSessionsView(aid));
+      (ui.bsub === 'plans' ? (has('plans') ? libPlansView(aid) : lockBox('plans')) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? libSessionsView(aid) : lockBox('library')));
   } else if (ui.tab === 'param'){
-    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava']]) + (ui.psub === 'strava' ? stravaView(aid) : profileView(aid));
+    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement']]) + (ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid));
   } else body = weekNav() + weekPage(aid);
   return `${head}
     <div class="tabs">
@@ -1269,12 +1394,12 @@ function detailHTML(s){
         <span style="color:${sp.color}">${icon(s.sport, 20)}</span><select data-f="sport" style="color:${sp.color}" ${ro}>${SPORT_KEYS.map(k=>`<option value="${k}" ${k===s.sport?'selected':''}>${SPORTS[k].label}</option>`).join('')}</select>
         <input class="ti" placeholder="Titre de la séance" data-f="title" value="${esc(s.title)}" ${ro}>
         <input type="date" data-f="date" value="${s.date}" ${ro}>
-        ${ro ? '' : `<button class="ib" title="Déplacer au jour précédent" data-a="mvday" data-v="-1">◀</button><button class="ib" title="Déplacer au jour suivant" data-a="mvday" data-v="1">▶</button><button class="ib" title="Charger une séance type" data-a="loadtpl">📂</button><button class="ib" title="Dupliquer au lendemain" data-a="dupsess">⧉</button>${me.role==='coach' ? `<button class="ib" title="Enregistrer comme séance type" data-a="savetpl">★</button>` : ''}<button class="ib red" title="Supprimer la séance" data-a="delsess">🗑</button>`}
+        ${ro ? '' : `<button class="ib" title="Déplacer au jour précédent" data-a="mvday" data-v="-1">◀</button><button class="ib" title="Déplacer au jour suivant" data-a="mvday" data-v="1">▶</button><button class="ib" title="Charger une séance type" data-a="loadtpl">📂</button><button class="ib" title="Dupliquer au lendemain" data-a="dupsess">⧉</button><button class="ib" title="Enregistrer comme séance type" data-a="savetpl">★</button><button class="ib red" title="Supprimer la séance" data-a="delsess">🗑</button>`}
       </div>
       <div class="sline" id="summary">${summaryHTML(s)}</div>
       <div class="sgraph" id="sgraph">${sessionGraph(s, 46, true)}</div>
-      ${blocks || '<div class="empty">Aucun bloc.</div>'}
-      ${ro ? '' : `<button class="lk" data-a="badd">+ bloc</button>`}
+      ${isSimple(s) ? simpleEditorHTML(s, ro) : `${blocks || '<div class="empty">Aucun bloc.</div>'}
+      ${ro ? '' : `<button class="lk" data-a="badd">+ bloc</button>`}`}
       <datalist id="blk-titles">${['Échauffement','Éducatifs','Gammes','Corps de séance','Fractionné','Série','Récupération','Retour au calme'].map(t=>`<option value="${t}">`).join('')}</datalist>
       <span class="ztxt" style="font-size:.68rem;float:right;margin-top:3px">45 = 45 min · 3:30 = 3 min 30 s · 1:30:00 = 1 h 30</span>
     </div>
@@ -1734,7 +1859,7 @@ function generatorHTML(){
   const total = plan.reduce((a,wk)=>a+wk.sessions.length,0);
   return `<div class="pane dense">
     <div class="gen">
-      <div><label>Discipline</label><select data-g="type">${opt([['run','Course à pied'],['tri','Triathlon']], g.type)}</select></div>
+      <div><label>Discipline</label><select data-g="type">${opt(has('plansTri') ? [['run','Course à pied'],['tri','Triathlon']] : [['run','Course à pied']], g.type)}</select></div>
       <div><label>Objectif</label><select data-g="obj">${opt(GEN_OBJ[g.type], g.obj)}</select></div>
       <div><label>Niveau</label><select data-g="level">${opt(LEVELS.map(l=>[l[0],l[1]]), g.level)}</select></div>
       <div><label>Semaines</label><input type="number" min="2" max="24" data-g="weeks" value="${g.weeks}" style="width:60px!important"></div>
@@ -1781,12 +1906,19 @@ function openTplPicker(mode){
   ui.pickMode = mode;
   const head = mode === 'replace' ? '<h3>Charger une séance type</h3><p class="ztxt" style="margin:0">Le contenu de la séance sera remplacé par celui de la séance type.</p>'
     : `<h3>Nouvelle séance · ${longDate(pendingDate)}</h3>
-       <div class="sect" style="margin-top:6px">Séance vide</div>
-       <div class="sportpick" style="margin:6px 0 4px">${SPORT_KEYS.map(k=>`<button style="background:${SPORTS[k].bg};border-left-color:${SPORTS[k].color};color:${SPORTS[k].color}" data-a="pick" data-v="${k}">${icon(k, 18)} ${SPORTS[k].label}</button>`).join('')}</div>
+       <div class="sect" style="margin-top:6px">1. Sport</div>
+       <div class="sportpick sel" id="pkSports" style="margin:6px 0 4px">${SPORT_KEYS.map(k=>`<button class="${(ui.newSport||'run')===k?'on':''}" style="background:${SPORTS[k].bg};border-left-color:${SPORTS[k].color};color:${SPORTS[k].color}" data-a="pksp" data-v="${k}">${icon(k, 18)} ${SPORTS[k].label}</button>`).join('')}</div>
+       <div class="sect">2. Créer</div>
+       <div class="newopts">
+         <button data-a="newsimple">⏱ Séance simple<small>seulement les temps en Z1, Z2 et Z3</small></button>
+         <button data-a="newdetail">☰ Séance détaillée<small>blocs, répétitions, intensités</small></button>
+         <label>📂 Importer une séance<small>fichier GPX / TCX : séance réalisée, bilan rempli</small><input type="file" id="newfile" accept=".gpx,.tcx" style="display:none"></label>
+       </div>
        <div class="sect">Ou partir d'une séance type</div>`;
   const cur = mode === 'replace' && ui.sessionId ? getSession(ui.sessionId) : null;
-  ui.pf = {sport: cur ? cur.sport : 'all', cat:'all', lvl:'all', dur:'all', q:''};
-  openModal(`${head}${filtersHTML(ui.pf, 'pk', filterTpls(ui.pf).length)}<div class="tpllist" id="tpllist">${tplPickerRows()}</div>
+  ui.newSport = ui.newSport || 'run';
+  ui.pf = {sport: cur ? cur.sport : (mode === 'new' ? ui.newSport : 'all'), cat:'all', lvl:'all', dur:'all', q:''};
+  openModal(`${head}${has('library') ? `${filtersHTML(ui.pf, 'pk', filterTpls(ui.pf).length)}<div class="tpllist" id="tpllist">${tplPickerRows()}</div>` : lockBox('library', true)}
     <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="mclose">Annuler</button></div>`, true);
 }
 document.addEventListener('input', e => {
@@ -1815,7 +1947,8 @@ const TRI_PRESETS = {
 };
 function libPlansView(aid){
   const g = genDefaults();
-  const matrix = `<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
+  if (!has('plansTri') && g.type === 'tri'){ g.type = 'run'; g.obj = GEN_OBJ.run[0][0]; }
+  const matrix = !has('plansTri') ? lockBox('plansTri', true) : `<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
     ${Object.entries(TRI_PRESETS).map(([obj, P]) => `<tr><th style="white-space:nowrap">${P.label}<div style="text-transform:none;font-weight:400">${P.d}</div></th>${LEVELS.map(([lv]) => {
       const on = g.type === 'tri' && g.obj === obj && g.level === lv && +g.weeks === P.weeks[lv] && +g.per === P.per[lv];
       return `<td><button class="${on ? 'on' : ''}" data-a="preset" data-o="${obj}" data-l="${lv}"><b>${P.weeks[lv]} semaines</b>${P.per[lv]} séances / sem.</button></td>`; }).join('')}</tr>`).join('')}
@@ -1827,7 +1960,7 @@ function libPlansView(aid){
       <div class="d">${p.weeks.length} sem. · ~${n} séances/sem.${p.desc ? ' — ' + esc(p.desc) : ''}</div>
       <div class="dots">${dots}</div>
       <div class="act dense"><span class="ztxt">Début</span><input type="date" id="libd-${p.id}" value="${nextMonday()}"><button class="btn sm primary" data-a="applyplan" data-id="${p.id}">Appliquer</button>
-        ${me.role === 'coach' && isUserPlan(p) ? `<button class="ib red" title="Supprimer ce plan" data-a="plandel" data-id="${p.id}">✕</button>` : ''}</div>
+        ${isUserPlan(p) && (!p.ownerId || p.ownerId === me.id) ? `<button class="ib red" title="Supprimer ce plan" data-a="plandel" data-id="${p.id}">✕</button>` : ''}</div>
     </div>`; }).join('');
   return `<div class="sect" style="margin-top:4px">Préparations triathlon M · L · XXL — choisissez le format et le niveau</div>
     ${matrix}
@@ -1845,7 +1978,7 @@ function libSessionsView(aid){
     return `<div class="lrow"><div class="c" style="background:${SPORTS[t.sport].color}"></div>
       <div><div class="tt"><span style="color:${SPORTS[t.sport].color}">${icon(t.sport, 13)}</span> ${esc(t.title)}${tplTags(t)}</div><div class="ds">${esc(t.desc||'')}</div></div>
       <span class="du2" style="font-weight:700;text-align:right">${fmtC(tplDur(t))}</span><div class="lgraph">${sessionGraph(t, 20)}</div>
-      <div class="act dense"><button class="ib" data-a="libopen" data-id="${t.id}" title="Détail">${open?'▲':'▼'}</button><input type="date" id="libd-${t.id}" value="${todayStr()}"><button class="btn sm" data-a="addtpl" data-id="${t.id}">Ajouter</button>${me.role==='coach' && !t.builtin ?`<button class="ib red" title="Retirer de la bibliothèque" data-a="libdel" data-id="${t.id}">✕</button>`:''}</div>
+      <div class="act dense"><button class="ib" data-a="libopen" data-id="${t.id}" title="Détail">${open?'▲':'▼'}</button><input type="date" id="libd-${t.id}" value="${todayStr()}"><button class="btn sm" data-a="addtpl" data-id="${t.id}">Ajouter</button>${!t.builtin && (!t.ownerId || t.ownerId === me.id) ?`<button class="ib red" title="Retirer de la bibliothèque" data-a="libdel" data-id="${t.id}">✕</button>`:''}</div>
       ${open ? `<div class="prev">${tplPreview(t)}</div>` : ''}
     </div>`; }).join('');
   return `${filtersHTML(ui.lf, 'lib', tpls.length)}
@@ -2005,17 +2138,22 @@ function bilanFromAct(act){
   return bilan;
 }
 // Import d'un fichier GPX / TCX directement dans le bilan de la séance ouverte
-async function importIntoSession(file){
+async function importIntoSession(file, adopt){
   const s = ui.sessionId ? getSession(ui.sessionId) : null;
-  if (!s || !canEdit(s)) return;
+  if (!s || !canEdit(s)) return false;
   const ext = (file.name.split('.').pop() || '').toLowerCase();
-  if (ext !== 'gpx' && ext !== 'tcx'){ toast('Format non pris en charge : choisissez un fichier .gpx ou .tcx'); return; }
+  if (ext !== 'gpx' && ext !== 'tcx'){ toast('Format non pris en charge : choisissez un fichier .gpx ou .tcx'); return false; }
   try {
     const u = getUser(s.athleteId);
     // zones FC, allures et puissance calculées pour le sport de la séance
-    const act = parseTrack(await file.text(), ext, u, s.sport, s.sport)[0];
-    if (!act || act.dur < 60){ toast('Fichier sans données exploitables (trop court ou sans horodatage)'); return; }
+    const text = await file.text();
+    let act = parseTrack(text, ext, u, s.sport, adopt ? null : s.sport)[0];
+    if (!act || act.dur < 60){ toast('Fichier sans données exploitables (trop court ou sans horodatage)'); return false; }
     const detected = act.detected;
+    if (adopt){
+      if (detected && detected !== s.sport){ s.sport = detected; act = parseTrack(text, ext, u, s.sport, s.sport)[0]; }
+      if (!s.title) s.title = act.name || 'Séance importée';
+    }
     const keep = {rpe: s.bilan.rpe, comment: s.bilan.comment};
     const b = bilanFromAct(act);
     const dist = ZONES.reduce((a, k) => a + (act.z[k].dist || 0), 0);
@@ -2024,9 +2162,10 @@ async function importIntoSession(file){
     s.bilan = b; save(); render();
     const warn = [];
     if (act.date && act.date !== s.date) warn.push('date du fichier : ' + longDate(act.date));
-    if (detected && detected !== s.sport) warn.push('sport du fichier : ' + SPORTS[detected].label);
-    toast('Bilan rempli et séance validée' + (warn.length ? ' — attention, ' + warn.join(', ') : ''));
-  } catch(err){ toast('Fichier illisible : ' + err.message); }
+    if (!adopt && detected && detected !== s.sport) warn.push('sport du fichier : ' + SPORTS[detected].label);
+    toast((adopt ? 'Séance importée et validée' : 'Bilan rempli et séance validée') + (warn.length ? ' — attention, ' + warn.join(', ') : ''));
+    return true;
+  } catch(err){ toast('Fichier illisible : ' + err.message); return false; }
 }
 
 function applyActivity(aid, act, report){
@@ -2101,17 +2240,18 @@ function coachHome(){
 function accountsView(){
   const others = state.users.filter(u => u.id !== me.id).sort((a,b) => (a.approved - b.approved) || a.name.localeCompare(b.name));
   return `<h2 style="margin-top:6px">Comptes</h2>
-  <p class="ztxt">Les adhérents créent leur compte eux-mêmes (avec Strava ou un e-mail) sur le site. Validez-les ici pour leur donner accès.</p>
+  
+  <p class="ztxt">Les adhérents créent leur compte eux-mêmes (avec Strava ou un e-mail) : il est actif tout de suite, en licence Basique. Vous pouvez changer la licence de chacun ici, avec une date de fin si besoin.</p>
   <div class="pane dense" style="margin-top:8px"><table class="rep">
-    <thead><tr><th>Nom</th><th>Rôle</th><th>Strava</th><th>Statut</th><th></th></tr></thead>
+    <thead><tr><th>Nom</th><th>Rôle</th><th>Licence</th><th>Strava</th><th>Statut</th><th></th></tr></thead>
     <tbody>${others.map(u => `<tr>
-      <td><b>${esc(u.name)}</b></td><td>${u.role === 'coach' ? 'Coach' : 'Adhérent'}</td>
+      <td><b>${esc(u.name)}</b></td><td>${u.role === 'coach' ? 'Coach' : 'Adhérent'}</td><td style="white-space:nowrap">${licSelectHTML(u)}</td>
       <td>${u.strava ? '<span class="strava">●</span> relié' : '—'}</td>
       <td>${u.role === 'coach' || u.approved ? '<span class="ok">Validé</span>' : '<span class="warn">En attente</span>'}</td>
       <td style="text-align:right">${u.role === 'coach' ? '' : (u.approved
         ? `<button class="btn sm" data-a="unapprove" data-id="${u.id}">Suspendre</button>`
         : `<button class="btn sm primary" data-a="approve" data-id="${u.id}">Valider</button>`) + ` <button class="btn sm danger" data-a="deluser" data-id="${u.id}">Supprimer</button>`}</td>
-    </tr>`).join('') || '<tr><td colspan="5" class="ztxt">Aucun autre compte pour l\'instant.</td></tr>'}</tbody>
+    </tr>`).join('') || '<tr><td colspan="6" class="ztxt">Aucun autre compte pour l\'instant.</td></tr>'}</tbody>
   </table></div>
   <div class="pane dense" style="margin-top:8px"><h4>Mon compte</h4>
     ${me.strava ? '<span class="ok">✓ Strava relié</span>' : '<button class="btn sm" data-a="stravalink">Relier mon compte Strava</button>'}
@@ -2156,6 +2296,7 @@ document.addEventListener('input', e => {
     if (k === 'cval'){ applyCrit(st, s.sport, ctxUser(s)); const L = stepLabelsHTML(st, s), id = `${el.dataset.b}-${el.dataset.s}`;
       [['li', L.int], ['lp', L.pct], ['lr', L.rpe], ['lf', L.fc], ['la', L.pace]].forEach(([p, v]) => { const e2 = document.getElementById(`${p}-${id}`); if (e2) e2.innerHTML = v; }); }
   }
+  else if (f === 'simple'){ const st = s.blocks[0].steps[+el.dataset.i]; if (st) st.dur = secToDur(parseHM(el.value)); }
   else if (f === 'bz'){ s.bilan.zones[el.dataset.z][el.dataset.k] = el.value; s.bilan.edited = true; }
   else if (f === 'bcomment') s.bilan.comment = el.value;
   else return;
@@ -2204,6 +2345,7 @@ async function authSubmit(mode){
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return;
   const a = el.dataset.a, s = ui.sessionId ? getSession(ui.sessionId) : null;
+  if (ACTION_FEAT[a] && !has(ACTION_FEAT[a])){ e.preventDefault(); lockedModal(ACTION_FEAT[a]); return; }
   const bi = el.dataset.b !== undefined ? +el.dataset.b : null;
   switch (a){
     case 'logout': sb.auth.signOut().then(() => { me = null; state = null; ui.view = 'home'; ui.athleteId = null; render(); }); break;
@@ -2233,6 +2375,15 @@ document.addEventListener('click', e => {
         const aid = me.role === 'coach' ? ui.athleteId : me.id, ns = addFromTemplate(aid, t, pendingDate);
         save(); closeModal(); ui.sessionId = ns.id; ui.tab = 'agenda'; ui.week = mondayOf(pendingDate); render();
       }
+      break; }
+    case 'pksp': ui.newSport = el.dataset.v; ui.pf.sport = el.dataset.v; ui.pf.cat = 'all';
+      document.querySelectorAll('#pkSports button').forEach(x => x.classList.toggle('on', x.dataset.v === ui.newSport)); refreshPicker(); break;
+    case 'newsimple': case 'newdetail': {
+      const aid = me.role === 'coach' ? ui.athleteId : me.id;
+      const blocks = a === 'newsimple' ? [simpleBlock()] : [block('Échauffement', 1, [(() => { const st = step('10:00','Z1'); setStepInt(st, 'I2'); return st; })()])];
+      const ns = {id:newId(), athleteId:aid, date:pendingDate, sport:ui.newSport || 'run', title:'', blocks, bilan:emptyBilan()};
+      state.sessions.push(ns); save(); closeModal(); ui.sessionId = ns.id; ui.tab = 'agenda'; ui.week = mondayOf(pendingDate); render();
+      const t = document.querySelector(a === 'newsimple' ? '[data-f="simple"]' : '[data-f="title"]'); if (t) t.focus();
       break; }
     case 'pick': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id;
@@ -2270,7 +2421,7 @@ document.addEventListener('click', e => {
     case 'savetpl2': {
       const v = id => (document.getElementById(id) || {}).value || '';
       if (!v('st-title').trim()){ document.getElementById('st-title').focus(); break; }
-      state.library.sessions.push({id:'t-'+uid(), sport:s.sport, cat:v('st-cat'), lvl:v('st-lvl'), title:v('st-title').trim(), desc:v('st-desc').trim(), blocks:cloneBlocks(s.blocks), custom:true});
+      state.library.sessions.push({ownerId:me.id, id:'t-'+uid(), sport:s.sport, cat:v('st-cat'), lvl:v('st-lvl'), title:v('st-title').trim(), desc:v('st-desc').trim(), blocks:cloneBlocks(s.blocks), custom:true});
       save(); closeModal(); toast('Séance type enregistrée dans la bibliothèque'); break; }
     case 'saveplan': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id;
@@ -2289,7 +2440,7 @@ document.addEventListener('click', e => {
       for (let i = 0; i < n; i++){ const ws = addDays(ui.week, 7*i);
         weeks.push(sessionsOf(aid, ws).map(x => ({day:(parseYmd(x.date).getDay() + 6) % 7, sport:x.sport, title:x.title, blocks:cloneBlocks(x.blocks)}))); }
       if (!weeks.some(w => w.length)){ toast('Aucune séance sur ces semaines'); break; }
-      state.library.plans.push({id:'up-'+uid(), title:v('sp-title').trim(), desc:v('sp-desc').trim(), weeks});
+      state.library.plans.push({ownerId:me.id, id:'up-'+uid(), title:v('sp-title').trim(), desc:v('sp-desc').trim(), weeks});
       save(); closeModal(); toast('Plan type enregistré dans la bibliothèque'); break; }
     case 'plandel': { const pl = state.library.plans.find(x => x.id === el.dataset.id);
       confirmBox(`Supprimer le plan « ${pl.title} » ?`, () => { state.library.plans = state.library.plans.filter(x => x !== pl); save(); render(); }); break; }
@@ -2333,6 +2484,11 @@ document.addEventListener('click', e => {
       if (!t.blocks.length) t.blocks.push(block('Corps de séance', 1, []));
       t.blocks[t.blocks.length - 1].steps.push(st); save(); toast(`« ${ex.title} » ajouté à la séance`); break; }
     case 'sub': ui[el.dataset.k] = el.dataset.v; render(); break;
+    case 'upgrade': {
+      const L = PAY_LINKS(), url = L && L[el.dataset.v];
+      if (!url){ toast('Paiement en ligne non configuré : contactez votre coach.'); break; }
+      location.href = url + (url.includes('?') ? '&' : '?') + 'client_reference_id=' + encodeURIComponent(me.id);
+      break; }
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
     case 'genapply': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id, g = genDefaults(), plan = generatePlan(g), start = mondayOf(g.start || nextMonday());
@@ -2354,6 +2510,7 @@ document.addEventListener('click', e => {
     case 'bup': if (bi > 0){ [s.blocks[bi-1], s.blocks[bi]] = [s.blocks[bi], s.blocks[bi-1]]; save(); render(); } break;
     case 'bdown': if (bi < s.blocks.length-1){ [s.blocks[bi+1], s.blocks[bi]] = [s.blocks[bi], s.blocks[bi+1]]; save(); render(); } break;
     case 'bdup': { const c = JSON.parse(JSON.stringify(s.blocks[bi])); c.id = uid(); c.steps.forEach(x=>x.id=uid()); s.blocks.splice(bi+1,0,c); save(); render(); break; }
+    case 'todetail': if (isSimple(s)){ delete s.blocks[0].simple; s.blocks[0].title = 'Corps de séance'; s.blocks[0].steps = s.blocks[0].steps.filter(st => parseMS(st.dur) > 0); if (!s.blocks[0].steps.length) s.blocks[0].steps.push(step('', 'Z1')); save(); render(); } break;
     case 'sadd': {
       const prev = s.blocks[bi].steps[s.blocks[bi].steps.length - 1], st = step('', 'Z1');
       if (prev && prev.mode === 'dist'){ st.mode = 'time'; }
@@ -2424,6 +2581,12 @@ document.addEventListener('change', e => {
   if (el.dataset && el.dataset.hr){ const aid = me.role === 'coach' ? ui.athleteId : me.id, u = getUser(aid); const v = parseInt(el.value); if (v > 0){ u.hr[el.dataset.hr] = v; save(); } }
   if (el.id === 'stravaFile' && el.files.length) handleFiles(Array.from(el.files));
   if (el.id === 'bilanfile' && el.files.length){ importIntoSession(el.files[0]); el.value = ''; }
+  if (el.id === 'newfile' && el.files.length){
+    const aid = me.role === 'coach' ? ui.athleteId : me.id, file = el.files[0];
+    const ns = {id:newId(), athleteId:aid, date:pendingDate, sport:ui.newSport || 'run', title:'', blocks:[], bilan:emptyBilan()};
+    state.sessions.push(ns); closeModal(); ui.sessionId = ns.id; ui.tab = 'agenda'; ui.week = mondayOf(pendingDate);
+    importIntoSession(file, true).then(ok => { if (!ok){ state.sessions = state.sessions.filter(x => x !== ns); ui.sessionId = null; save(); render(); } });
+  }
   if (el.id === 'defSport') ui.defSport = el.value;
 });
 document.addEventListener('change', e => {
