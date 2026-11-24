@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Suivi Coach & Athlètes</title>
+<title>SuiviTri — suivi coach & athlètes</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -151,6 +153,17 @@ table.grid input{width:100%;border:1px solid var(--line);border-radius:6px;paddi
 .demo{margin-top:16px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;line-height:1.6}
 .demo code{background:#eef2f5;padding:1px 5px;border-radius:4px}
 
+.sbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border:0;border-radius:8px;background:#fc4c02;color:#fff;font-weight:600}
+.sbtn:hover{background:#e04300}
+.or{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.8rem;margin:14px 0}
+.or:before,.or:after{content:'';flex:1;height:1px;background:var(--line)}
+.ltabs{display:flex;gap:4px;margin-bottom:10px}
+.ltabs button{flex:1;border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px;font-size:.85rem}
+.ltabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.msg{font-size:.85rem;color:var(--run);min-height:1.2em;margin-bottom:8px}
+.badge{background:#fc4c02;color:#fff;border-radius:10px;padding:0 6px;font-size:.72rem;margin-left:4px}
+.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.pwrd{font-size:.68rem;color:var(--muted);text-align:center;margin-top:14px}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(22,32,43,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
 .modal{background:#fff;border-radius:12px;padding:20px;max-width:420px;width:100%}
@@ -224,7 +237,7 @@ h2{font-size:1.25rem}
 .blk .bh .bt{flex:1;font-weight:600}
 .blk .bh .rp{width:42px!important;text-align:center}
 .blk .bh .du{font-size:.72rem;color:var(--muted);min-width:44px;text-align:right}
-table.st{border-collapse:collapse;width:100%;min-width:720px}
+table.st{border-collapse:collapse;width:100%;min-width:820px}
 table.st th{font-size:.65rem;color:var(--muted);font-weight:600;text-align:left;padding:2px 3px 0;text-transform:uppercase}
 table.st td{padding:1px 2px}
 table.st tr td:first-child,table.st tr th:first-child{padding-left:4px}
@@ -282,6 +295,15 @@ table.bz tfoot td{font-size:.8rem;font-weight:700;padding:3px 2px}
 .lgraph svg{display:block;width:100%;height:20px}
 .ico{display:inline-block;vertical-align:-2px;flex:none}
 .c2 .t .ico{margin-right:3px}
+/* Ligne de série : un critère saisi, le reste en libellés */
+.crit{display:flex;gap:2px;align-items:center}
+.crit .ct{width:82px!important;padding:3px 1px!important}
+.crit .cv{width:62px!important}
+.crit .cu{font-size:.68rem;color:var(--muted);white-space:nowrap}
+.slab{font-size:.74rem;white-space:nowrap;color:var(--ink);padding:0 4px}
+.slab.na{color:#c3ccd5}
+.slab.hl{font-weight:700;color:var(--accent)}
+.ilab{display:inline-block;padding:1px 6px;border-radius:5px;font-weight:700;font-size:.72rem;color:#1d2a36;white-space:nowrap}
 /* Profil & zones */
 .prof{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prof .pane h4{display:flex;align-items:center;gap:6px}
@@ -348,20 +370,11 @@ const icon = (k, size=14, color='currentColor') => `<svg class="ico" width="${si
 const ZONES = ['Z1','Z2','Z3'];
 const DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const MONTHS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-const STORE_KEY = 'suivi-coach-athletes-v1';
 
 /* ===================== Utilitaires ===================== */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid = () => Math.random().toString(36).slice(2, 10);
-function hash(str){ // hachage simple (prototype, pas une sécurité réelle)
-  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
-  for (let i = 0; i < str.length; i++){ const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
-}
-const pwHash = (login, pw) => hash(login.toLowerCase() + ':' + pw);
-
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : uid() + uid());
 function ymd(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
 function addDays(s, n){ const d = parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
@@ -488,6 +501,63 @@ function hrLimits(u, sport){
   if (f) return {z1: Math.round(f.v*0.85), z2: Math.round(f.v)};
   return u.hr || {z1:145, z2:165};
 }
+/* ===== Critère de série : intensité, % VMA/PMA/vitesse seuil, RPE ou FC ===== */
+const PCT_LAB = {run:'% VMA', bike:'% PMA', swim:'% vit. seuil'};
+const PACE_LAB = {run:'Allure', bike:'Puissance', swim:'Allure'};
+const RPE_OF = {I1:'1–2', I2:'3–4', I3:'5', I4:'6–7', I5:'8', I6:'9', I7:'10'};
+const RPE_TO = r => r <= 2 ? 'I1' : r <= 4 ? 'I2' : r <= 5 ? 'I3' : r <= 7 ? 'I4' : r <= 8 ? 'I5' : r <= 9 ? 'I6' : 'I7';
+const inRange = (v, pr) => pr && (v >= (pr[0] || 0)) && (pr[1] == null || v < pr[1]);
+const numv = v => parseFloat(String(v == null ? '' : v).replace(',', '.'));
+function critOf(st){ return st.crit || 'int'; }
+// Intensité déduite du critère saisi (null si impossible, ex. FC sans profil)
+function intFromCrit(st, sport, u){
+  const c = critOf(st), v = numv(st.cval);
+  if (c === 'int') return st.int || null;
+  if (!(v > 0)) return null;
+  if (c === 'rpe') return RPE_TO(v);
+  if (c === 'pct'){ const it = INTS.find(i => inRange(v, i[sport])); return it ? it.k : (v >= 100 ? 'I7' : 'I1'); }
+  if (c === 'fc'){ const f = fcSeuil(u, sport); if (!f) return null; const pc = v / f.v * 100;
+    const it = INTS.find(i => i.hr && inRange(pc, i.hr)); return it ? it.k : (pc >= 100 ? 'I6' : 'I1'); }
+  return null;
+}
+function applyCrit(st, sport, u){ const k = intFromCrit(st, sport, u); if (k) setStepInt(st, k); return k; }
+const pctTxt = pr => !pr ? '—' : !pr[0] ? `< ${pr[1]} %` : pr[1] == null ? `> ${pr[0]} %` : `${pr[0]}–${pr[1]} %`;
+// Libellés affichés pour une ligne : la valeur saisie est exacte, les autres sont déduites
+function stepInfo(st, s){
+  const sport = s.sport, u = ctxUser(s), c = critOf(st), v = numv(st.cval);
+  const k = st.int || defaultInt(st, null), it = INT_BY[k], f = fcSeuil(u, sport), ref = refOf(u, sport);
+  const out = {k, c};
+  out.int = it ? `${k} · ${INT_SHORT[k]}` : '—';
+  if (sport === 'strength'){ out.pct = '—'; out.pace = '—'; }
+  else if (c === 'pct' && v > 0){
+    out.pct = `${v} %`;
+    out.pace = !ref ? '' : sport === 'bike' ? Math.round(ref * v / 100) + ' W' : sport === 'run' ? mmss(3600 / (ref * v / 100)) + '/km' : mmss(ref / (v / 100)) + '/100 m';
+  } else { out.pct = pctTxt(it && it[sport]); out.pace = rangeTxt(sport, ref, it && it[sport]); }
+  out.rpe = c === 'rpe' && v > 0 ? String(v) : (RPE_OF[k] || '—');
+  out.fc = c === 'fc' && v > 0 ? `${Math.round(v)} bpm` : hrTxt(f, it && it.hr);
+  out.missingFc = c === 'fc' && v > 0 && !f;
+  return out;
+}
+const labCell = (txt, hl, id) => `<span class="slab ${!txt ? 'na' : ''} ${hl ? 'hl' : ''}" ${id ? `id="${id}"` : ''}>${txt ? esc(txt) : '—'}</span>`;
+function stepLabelsHTML(st, s, bi, si){
+  const i = stepInfo(st, s), it = INT_BY[i.k];
+  return {
+    int: `<span class="ilab" style="background:${it ? it.c : '#eee'};${i.k >= 'I6' ? 'color:#fff' : ''}" title="${it ? esc(it.n) : ''}">${esc(i.int)}</span>${i.missingFc ? ' <span class="slab na" title="Renseignez la FC seuil ou la FC max dans le profil">profil ?</span>' : ''}`,
+    pct: labCell(i.pct === '—' ? '' : i.pct, i.c === 'pct'),
+    rpe: labCell(i.rpe === '—' ? '' : i.rpe, i.c === 'rpe'),
+    fc: labCell(i.fc, i.c === 'fc'),
+    pace: labCell(i.pace, i.c === 'pct')
+  };
+}
+// Valeur de départ quand on change de critère, cohérente avec l'intensité actuelle
+function seedCrit(st, c, sport, u){
+  const it = INT_BY[st.int || 'I2'], mid = pr => !pr ? '' : !pr[0] ? pr[1] - 5 : pr[1] == null ? pr[0] + 5 : Math.round((pr[0] + pr[1]) / 2);
+  if (c === 'pct') return String(mid(it[sport]));
+  if (c === 'rpe') return ({I1:2, I2:3, I3:5, I4:7, I5:8, I6:9, I7:10})[it.k];
+  if (c === 'fc'){ const f = fcSeuil(u, sport); return f && it.hr ? String(Math.round(f.v * mid(it.hr) / 100)) : ''; }
+  return '';
+}
+
 function setStepInt(st, v){
   if (/^I\d$/.test(v)){ st.int = v; st.zone = INT_BY[v].z; }
   else { st.int = ''; st.zone = v; }
@@ -497,56 +567,6 @@ function step(dur, zone, extra={}){ return Object.assign({id:uid(), dur, fc:'', 
 function block(title, reps, steps){ return {id:uid(), title, reps, steps}; }
 function emptyBilan(){ return {zones:{Z1:{time:'',fc:'',pw:''},Z2:{time:'',fc:'',pw:''},Z3:{time:'',fc:'',pw:''}}, rpe:'', comment:''}; }
 
-function seed(){
-  const ws = mondayOf(todayStr());
-  const users = [
-    {id:'u-coach', login:'coach',  name:'Coach',          role:'coach',   pw:pwHash('coach','coach2026')},
-    {id:'u-julie', login:'julie',  name:'Julie Martin',   role:'athlete', pw:pwHash('julie','julie2026')},
-    {id:'u-thomas',login:'thomas', name:'Thomas Bernard', role:'athlete', pw:pwHash('thomas','thomas2026')}
-  ];
-  const S = (athleteId, day, sport, title, blocks, bilan) => ({id:uid(), athleteId, date:addDays(ws,day), sport, title, blocks, bilan:bilan||emptyBilan()});
-  const B = (z1,z2,z3,rpe,comment,fc=['','',''],pw=['','','']) => ({zones:{Z1:{time:z1,fc:fc[0],pw:pw[0]},Z2:{time:z2,fc:fc[1],pw:pw[1]},Z3:{time:z3,fc:fc[2],pw:pw[2]}}, rpe, comment});
-  const sessions = [
-    S('u-julie',0,'swim','Technique + seuil',[
-      block('Échauffement',1,[step('10:00','Z1',{autre:'400 m varié'})]),
-      block('Éducatifs',4,[step('2:00','Z1',{autre:'50 m rattrapé + 50 m nage'})]),
-      block('Corps de séance',6,[step('2:00','Z3',{rpe:'7',puiss:'1:45/100 m',autre:'100 m'}),step('0:30','Z1',{autre:'récup'})]),
-      block('Retour au calme',1,[step('5:00','Z1')])
-    ], B('0:33','','0:12','6','Bonnes sensations sur les 100',['128','','158'],['2:05/100','','1:46/100'])),
-    S('u-julie',1,'run','Fractionné 6 × 1000',[
-      block('Échauffement',1,[step('15:00','Z1',{fc:'<140'})]),
-      block('Fractionné',6,[step('4:00','Z3',{fc:'170-175',rpe:'8',puiss:'4:00/km'}),step('1:30','Z1',{autre:'trot'})]),
-      block('Retour au calme',1,[step('10:00','Z1')])
-    ], B('0:34','','0:24','8','Dernier 1000 difficile',['138','','172'],['5:45/km','','4:02/km'])),
-    S('u-julie',2,'bike','Sortie endurance',[
-      block('Endurance',1,[step('1:30:00','Z2',{fc:'135-145',puiss:'160-180 W',taux:'90 rpm'})])
-    ], B('0:15','1:20','','5','RAS',['125','141',''],['140 W','172 W',''])),
-    S('u-julie',4,'strength','Renfo gainage',[
-      block('Circuit',3,[step('0:45','Z2',{autre:'gainage ventral'}),step('0:45','Z2',{autre:'squats'}),step('0:45','Z2',{autre:'fentes'}),step('0:30','Z1',{autre:'récup'})])
-    ]),
-    S('u-julie',5,'bike','Sortie longue avec blocs',[
-      block('Échauffement',1,[step('20:00','Z1')]),
-      block('Blocs tempo',3,[step('15:00','Z2',{puiss:'200 W',taux:'85 rpm'}),step('5:00','Z1')]),
-      block('Endurance',1,[step('1:00:00','Z1')])
-    ]),
-    S('u-julie',6,'run','Footing',[ block('Footing',1,[step('50:00','Z1',{fc:'<145'})]) ]),
-    S('u-thomas',0,'run','Footing récup',[ block('Footing',1,[step('40:00','Z1')]) ], B('0:42','','','3','')),
-    S('u-thomas',2,'swim','Endurance aérobie',[
-      block('Échauffement',1,[step('10:00','Z1')]),
-      block('Séries',8,[step('3:00','Z2',{autre:'200 m'}),step('0:20','Z1')]),
-      block('Retour au calme',1,[step('5:00','Z1')])
-    ]),
-    S('u-thomas',3,'bike','PMA',[
-      block('Échauffement',1,[step('20:00','Z1')]),
-      block('PMA',10,[step('1:00','Z3',{puiss:'320 W',rpe:'9'}),step('1:00','Z1')]),
-      block('Retour au calme',1,[step('15:00','Z1')])
-    ]),
-    S('u-thomas',5,'strength','Renfo haut du corps',[
-      block('Circuit haltères',4,[step('0:40','Z2',{autre:'développé couché'}),step('0:40','Z2',{autre:'rowing'}),step('1:00','Z1',{autre:'récup'})])
-    ])
-  ];
-  return {users, sessions};
-}
 /* Intensités I1–I7 de chaque ligne des séances types (un tableau par bloc, une valeur par ligne) */
 const TPL_INTS = {
   't-swim-ef':    [['I2'], ['I2'], ['I3','I1'], ['I1']],          // échauffement · éducatifs · pull-buoy 300 m + récup · retour au calme
@@ -635,25 +655,100 @@ function defaultLibrary(){
   addLibraryInts(sessions);
   return {sessions, plans};
 }
-function migrate(st){
-  if (st.library && addLibraryInts(st.library.sessions)) setTimeout(save, 0);
-  if (!st.library) st.library = defaultLibrary();
-  if (!st.imported) st.imported = [];
-  st.users.forEach(u => { if (u.role === 'athlete' && !u.hr) u.hr = {z1:145, z2:165}; });
-  return st;
+/* ===================== Données serveur (Supabase) ===================== */
+const CFG = window.SUIVITRI_CONFIG || {};
+const sb = (window.supabase && CFG.supabaseUrl) ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey, { auth: { flowType: 'implicit', detectSessionInUrl: true, persistSession: true } }) : null;
+const SITE_URL = (CFG.siteUrl || (location.origin + location.pathname)).replace(/index\.html$/, '');
+let snap = {sessions:new Map(), users:new Map(), libS:new Map(), libP:new Map()};
+const J = o => JSON.stringify(o);
+
+const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync});
+const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}});
+const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id});
+const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan});
+const libSFrom = r => ({id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom});
+const libSTo = t => ({id:t.id, sport:t.sport, title:t.title, descr:t.desc || '', blocks:t.blocks, custom:!!t.custom});
+const libPFrom = r => ({id:r.id, title:r.title, desc:r.descr, weeks:r.weeks});
+const libPTo = p => ({id:p.id, title:p.title, descr:p.desc || '', weeks:p.weeks});
+
+function takeSnapshot(){
+  snap.sessions = new Map(state.sessions.map(s => [s.id, J(sessTo(s))]));
+  snap.users = new Map(state.users.map(u => [u.id, J(userTo(u))]));
+  snap.libS = new Map(state.library.sessions.map(t => [t.id, J(libSTo(t))]));
+  snap.libP = new Map(state.library.plans.map(p => [p.id, J(libPTo(p))]));
 }
-function load(){
-  try { const raw = localStorage.getItem(STORE_KEY); if (raw) return JSON.parse(raw); } catch(e){}
-  return seed();
+async function loadAll(){
+  const [p, s, ls, lp] = await Promise.all([
+    sb.from('profiles').select('*').order('name'),
+    sb.from('sessions').select('*'),
+    sb.from('library_sessions').select('*').order('id'),
+    sb.from('library_plans').select('*').order('id')]);
+  const err = p.error || s.error || ls.error || lp.error; if (err) throw err;
+  state = {users:p.data.map(userFrom), sessions:s.data.map(sessFrom), library:{sessions:ls.data.map(libSFrom), plans:lp.data.map(libPFrom)}};
+  me = getUser(me.id) || me;
+  if (me.role === 'coach' && !state.library.sessions.length && !state.library.plans.length){
+    const d = defaultLibrary(); state.library = d;
+    await sb.from('library_sessions').insert(d.sessions.map(libSTo));
+    await sb.from('library_plans').insert(d.plans.map(libPTo));
+  }
+  takeSnapshot();
+  if (me.role === 'coach' && addLibraryInts(state.library.sessions)){ save(); setTimeout(() => toast('Séances types mises à jour avec les intensités I1–I7'), 400); }
 }
-function save(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){} }
+// Envoie au serveur uniquement ce qui a changé depuis le dernier enregistrement
+async function diffSync(list, map, toRow, table){
+  const cur = new Map(list.map(x => [x.id, J(toRow(x))]));
+  const up = [], del = [];
+  cur.forEach((v, id) => { if (map.get(id) !== v) up.push(JSON.parse(v)); });
+  map.forEach((_, id) => { if (!cur.has(id)) del.push(id); });
+  if (up.length){ const r = await sb.from(table).upsert(up); if (r.error) throw r.error; }
+  if (del.length){ const r = await sb.from(table).delete().in('id', del); if (r.error) throw r.error; }
+  return cur;
+}
+let saveTimer = null, saving = false, saveAgain = false, dirty = false;
+function save(){ dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 600); setStatus('Enregistrement…'); }
+async function flush(){
+  if (saving){ saveAgain = true; return; }
+  saving = true;
+  try {
+    snap.sessions = await diffSync(state.sessions, snap.sessions, sessTo, 'sessions');
+    // Profils : uniquement des mises à jour (jamais de création depuis le navigateur)
+    for (const u of state.users){
+      const v = J(userTo(u));
+      if (snap.users.get(u.id) === v) continue;
+      const row = me.role === 'coach' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
+      const r = await sb.from('profiles').update(row).eq('id', u.id);
+      if (r.error) throw r.error;
+      snap.users.set(u.id, v);
+    }
+    if (me.role === 'coach'){
+      snap.libS = await diffSync(state.library.sessions, snap.libS, libSTo, 'library_sessions');
+      snap.libP = await diffSync(state.library.plans, snap.libP, libPTo, 'library_plans');
+    }
+    dirty = false; setStatus('Enregistré');
+  } catch(e){ console.error(e); setStatus('Erreur d\'enregistrement'); toast('Enregistrement impossible : ' + (e.message || e)); }
+  saving = false;
+  if (saveAgain){ saveAgain = false; flush(); }
+}
+// Envoi immédiat quand on quitte la page ou qu'on passe à une autre application (smartphone)
+function flushNow(){ if (dirty || saveTimer){ clearTimeout(saveTimer); saveTimer = null; flush(); } }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNow(); });
+window.addEventListener('pagehide', flushNow);
+window.addEventListener('beforeunload', e => { if (dirty || saving){ flushNow(); e.preventDefault(); e.returnValue = ''; } });
+function setStatus(t){ const el = document.getElementById('savestate'); if (el){ el.textContent = t === 'Enregistré' ? '✓ Enregistré' : t; el.style.color = /Erreur/.test(t) ? '#ffb4a8' : ''; el.style.opacity = /Erreur/.test(t) ? '1' : '.6'; } }
+// Recharge en revenant sur l'onglet (activités Strava arrivées, modifications du coach…)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && me && state && !saving && !dirty && (me.role === 'coach' || me.approved)){
+    try { await loadAll(); render(); } catch(_){}
+  }
+});
 
 /* ===================== Calculs ===================== */
 // Vitesse estimée (m/s) d'une ligne en distance, d'après l'intensité et le profil de l'athlète
 function speedFor(st, sport, u){
   const it = INT_BY[st.int] || INT_BY[{Z1:'I2', Z2:'I4', Z3:'I5'}[st.zone] || 'I2'];
   const pr = it[sport] || [60, 70];
-  const mid = !pr[0] ? pr[1] - 5 : pr[1] == null ? pr[0] + 5 : (pr[0] + pr[1]) / 2;
+  let mid = !pr[0] ? pr[1] - 5 : pr[1] == null ? pr[0] + 5 : (pr[0] + pr[1]) / 2;
+  if (st.crit === 'pct' && numv(st.cval) > 0) mid = numv(st.cval);
   const ref = u ? refOf(u, sport) : null;
   if (sport === 'run') return (ref || 14) * mid / 100 / 3.6;          // VMA par défaut : 14 km/h
   if (sport === 'swim') return 100 / ((ref || 120) / (mid / 100));     // allure seuil par défaut : 2:00/100 m
@@ -687,8 +782,8 @@ function plannedBilanZones(s){
   ZONES.forEach(k => {
     const steps = s.blocks.flatMap(b => b.steps).filter(st => st.zone === k);
     const first = key => (steps.find(st => String(st[key]||'').trim()) || {})[key] || '';
-    const withInt = steps.find(st => st.int), tg = withInt ? stepTarget(withInt, s.sport, getUser(s.athleteId)) : null;
-    out[k] = {time: hmStr(pz[k]), fc: first('fc') || (tg && tg.hr) || '', pw: first('puiss') || (tg && tg.pace) || ''};
+    const withInt = steps.find(st => st.int), tg = withInt ? stepInfo(withInt, s) : null;
+    out[k] = {time: hmStr(pz[k]), fc: first('fc') || (tg && tg.fc) || '', pw: first('puiss') || (tg && tg.pace) || ''};
   });
   return out;
 }
@@ -738,6 +833,8 @@ const $app = document.getElementById('app'), $modal = document.getElementById('m
 
 function render(){
   if (!me){ $app.innerHTML = loginView(); return; }
+  if (!state){ $app.innerHTML = '<div class="loading">Chargement…</div>'; return; }
+  if (me.role !== 'coach' && !me.approved){ $app.innerHTML = pendingView(); return; }
   let body = '';
   if (me.role === 'coach' && ui.view === 'home') body = coachHome();
   else if (me.role === 'coach' && ui.view === 'accounts') body = accountsView();
@@ -745,30 +842,60 @@ function render(){
   $app.innerHTML = `
   <div class="topbar"><div class="wrap">
     <div class="brand">Suivi<span>Tri</span></div>
-    ${me.role === 'coach' ? `<button class="btn dark sm" data-a="home">Athlètes</button><button class="btn dark sm" data-a="accounts">Comptes</button>` : ''}
+    ${me.role === 'coach' ? `<button class="btn dark sm" data-a="home">Athlètes</button><button class="btn dark sm" data-a="accounts">Comptes${pendingCount() ? `<span class="badge">${pendingCount()}</span>` : ''}</button>` : ''}
     <div class="spacer"></div>
+    <span class="who" id="savestate" style="font-size:.75rem;opacity:.6"></span>
     <div class="who">${esc(me.name)} · ${me.role === 'coach' ? 'Coach' : 'Adhérent'}</div>
     <button class="btn dark sm" data-a="logout">Déconnexion</button>
   </div></div>
   <div class="wrap">
-    <div class="notice">Prototype : données enregistrées dans ce navigateur uniquement ; mots de passe non sécurisés.</div>
     ${body}
   </div>`;
 }
 
+const pendingCount = () => state ? state.users.filter(u => u.role === 'athlete' && !u.approved).length : 0;
 function loginView(){
-  return `<div class="login"><form class="card" id="loginForm">
+  const m = ui.authMode || 'login';
+  const f = m === 'signup' ? `
+      <div class="field"><label for="su-name">Prénom et nom</label><input id="su-name" required></div>
+      <div class="field"><label for="lg">E-mail</label><input id="lg" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="pw">Mot de passe (8 caractères minimum)</label><input id="pw" type="password" minlength="8" autocomplete="new-password" required></div>
+      <button class="btn primary" style="width:100%;padding:10px">Créer mon compte</button>`
+    : m === 'reset' ? `
+      <div class="field"><label for="lg">E-mail du compte</label><input id="lg" type="email" required></div>
+      <button class="btn primary" style="width:100%;padding:10px">Recevoir un lien de réinitialisation</button>`
+    : m === 'newpw' ? `
+      <div class="field"><label for="pw">Nouveau mot de passe</label><input id="pw" type="password" minlength="8" autocomplete="new-password" required></div>
+      <button class="btn primary" style="width:100%;padding:10px">Enregistrer le mot de passe</button>`
+    : `
+      <div class="field"><label for="lg">E-mail</label><input id="lg" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary" style="width:100%;padding:10px">Se connecter</button>
+      <button type="button" class="lk" style="margin-top:8px" data-a="authmode" data-v="reset">Mot de passe oublié ?</button>`;
+  return `<div class="login"><form class="card" id="authForm" data-mode="${m}">
     <h1>Suivi<span style="color:var(--accent)">Tri</span></h1>
-    <p>Connectez-vous à votre espace coach ou adhérent.</p>
-    <div class="field"><label for="lg">Identifiant</label><input id="lg" autocomplete="username" autofocus></div>
-    <div class="field"><label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password"></div>
-    <div class="err" id="err"></div>
-    <button class="btn primary" style="width:100%;padding:10px">Se connecter</button>
-    <div class="demo">Comptes de démonstration :<br>
-      Coach : <code>coach</code> / <code>coach2026</code><br>
-      Adhérente : <code>julie</code> / <code>julie2026</code><br>
-      Adhérent : <code>thomas</code> / <code>thomas2026</code></div>
+    <p>Espace coach et adhérents</p>
+    ${m === 'newpw' ? '' : `<button type="button" class="sbtn" data-a="stravalogin">Se connecter avec Strava</button>
+    <div class="or">ou avec un e-mail</div>
+    <div class="ltabs"><button type="button" class="${m==='login'||m==='reset'?'on':''}" data-a="authmode" data-v="login">Connexion</button><button type="button" class="${m==='signup'?'on':''}" data-a="authmode" data-v="signup">Créer un compte</button></div>`}
+    ${f}
+    <div class="err" id="err" style="margin-top:8px">${esc(ui.authErr || '')}</div>
+    <div class="msg" id="msg">${esc(ui.authMsg || '')}</div>
+    <div class="pwrd">Compatible avec Strava</div>
   </form></div>`;
+}
+function pendingView(){
+  return `<div class="login"><div class="card">
+    <h1>Bienvenue ${esc((me.name || '').split(' ')[0])}</h1>
+    <p>Votre compte est créé. Il doit maintenant être <b>validé par votre coach</b> avant que vous accédiez à vos séances.</p>
+    ${me.strava ? '<p class="ok">✓ Compte Strava relié : vos activités seront importées.</p>' : `<button class="sbtn" data-a="stravalink">Relier mon compte Strava dès maintenant</button>`}
+    <div class="row" style="margin-top:14px"><button class="btn" data-a="refresh">Vérifier à nouveau</button><button class="btn ghost" data-a="logout">Déconnexion</button></div>
+  </div></div>`;
+}
+function stravaAuthorize(st){
+  if (!CFG.stravaClientId){ toast('Strava n\'est pas encore configuré (config.js).'); return; }
+  const q = new URLSearchParams({client_id:CFG.stravaClientId, response_type:'code', redirect_uri:SITE_URL, approval_prompt:'auto', scope:'read,activity:read_all', state:st});
+  location.href = 'https://www.strava.com/oauth/authorize?' + q;
 }
 
 function weekNav(){
@@ -956,23 +1083,25 @@ function detailHTML(s){
         ${ro ? '' : `<button class="ib" title="Monter" data-a="bup" data-b="${bi}">↑</button><button class="ib" title="Descendre" data-a="bdown" data-b="${bi}">↓</button><button class="ib" title="Dupliquer" data-a="bdup" data-b="${bi}">⧉</button><button class="ib red" title="Supprimer le bloc" data-a="bdel" data-b="${bi}">✕</button>`}
       </div>
       <div class="scroll"><table class="st">
-        <thead><tr><th style="width:178px">Durée / distance</th><th style="width:62px">FC</th><th style="width:124px">Intensité</th><th style="width:150px">Cible athlète</th><th style="width:42px">RPE</th><th style="width:62px">Taux</th><th style="width:90px">Puiss./val.</th><th>Autre</th><th style="width:22px"></th></tr></thead>
-        <tbody>${b.steps.map((st, si) => `<tr>
+        <thead><tr><th style="width:178px">Durée / distance</th><th style="width:156px">Critère saisi</th><th style="width:118px">Intensité</th>${s.sport === 'strength' ? '' : `<th style="width:78px">${PCT_LAB[s.sport]}</th>`}<th style="width:40px">RPE</th><th style="width:96px">FC</th>${s.sport === 'strength' ? '' : `<th style="width:118px">${PACE_LAB[s.sport]}</th>`}<th>Consigne</th><th style="width:22px"></th></tr></thead>
+        <tbody>${b.steps.map((st, si) => { const L = stepLabelsHTML(st, s, bi, si), c = critOf(st); return `<tr>
           <td><div class="dur">${s.sport === 'strength' ? '' : `<select class="md" title="Répétition au temps ou à la distance" data-f="step" data-b="${bi}" data-s="${si}" data-k="mode" ${ro}><option value="time" ${st.mode !== 'dist' ? 'selected' : ''}>⏱</option><option value="dist" ${st.mode === 'dist' ? 'selected' : ''}>📏</option></select>`}
             ${st.mode === 'dist' && s.sport !== 'strength'
               ? `<input class="dv" inputmode="decimal" placeholder="distance" data-f="step" data-b="${bi}" data-s="${si}" data-k="dist" value="${esc(st.dist || '')}" ${ro}><select class="un" data-f="step" data-b="${bi}" data-s="${si}" data-k="unit" ${ro}><option value="m" ${st.unit === 'm' ? 'selected' : ''}>m</option><option value="km" ${st.unit === 'km' ? 'selected' : ''}>km</option></select><span class="est" id="est-${bi}-${si}" title="Durée estimée d'après l'intensité et le profil">${estTxt(st, s)}</span>`
               : `<input placeholder="mm:ss" data-f="step" data-b="${bi}" data-s="${si}" data-k="dur" value="${esc(st.dur)}" ${ro}>`}</div></td>
-          <td><input placeholder="bpm" data-f="step" data-b="${bi}" data-s="${si}" data-k="fc" value="${esc(st.fc)}" ${ro}></td>
-          <td><select data-f="step" data-b="${bi}" data-s="${si}" data-k="zone" title="${st.int ? esc(INT_BY[st.int].n) : ''}" ${ro}>${INTS.map(it=>`<option value="${it.k}" ${st.int===it.k?'selected':''}>${it.k} · ${INT_SHORT[it.k]}</option>`).join('')}</select></td>
-          <td>${(() => { const t = stepTarget(st, s.sport, getUser(s.athleteId)); if (!t) return '<span class="tgt none">—</span>';
-            const txt = [t.pace, t.hr].filter(Boolean).join(' · ');
-            return txt ? `<span class="tgt" title="${INT_BY[st.int].n}">${txt}</span>` : `<span class="tgt none" title="Renseignez le profil de l'athlète">profil à compléter</span>`; })()}</td>
-          <td><input data-f="step" data-b="${bi}" data-s="${si}" data-k="rpe" value="${esc(st.rpe)}" ${ro}></td>
-          <td><input data-f="step" data-b="${bi}" data-s="${si}" data-k="taux" value="${esc(st.taux)}" ${ro}></td>
-          <td><input data-f="step" data-b="${bi}" data-s="${si}" data-k="puiss" value="${esc(st.puiss)}" ${ro}></td>
-          <td><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" ${ro}></td>
+          <td><div class="crit"><select class="ct" title="Critère utilisé pour cette ligne" data-f="step" data-b="${bi}" data-s="${si}" data-k="crit" ${ro}>
+              ${[['int','Intensité'], ...(s.sport === 'strength' ? [] : [['pct', PCT_LAB[s.sport]]]), ['rpe','RPE'], ['fc','FC']].map(([v,l]) => `<option value="${v}" ${c===v?'selected':''}>${l}</option>`).join('')}</select>
+            ${c === 'int' ? `<select class="cv" style="width:70px!important" data-f="step" data-b="${bi}" data-s="${si}" data-k="zone" ${ro}>${INTS.map(it=>`<option value="${it.k}" ${st.int===it.k?'selected':''}>${it.k}</option>`).join('')}</select>`
+              : c === 'rpe' ? `<select class="cv" data-f="step" data-b="${bi}" data-s="${si}" data-k="cval" ${ro}>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option ${String(st.cval)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`
+              : `<input class="cv" inputmode="decimal" data-f="step" data-b="${bi}" data-s="${si}" data-k="cval" value="${esc(st.cval || '')}" placeholder="${c === 'fc' ? 'bpm' : '%'}" ${ro}><span class="cu">${c === 'fc' ? 'bpm' : '%'}</span>`}</div></td>
+          <td id="li-${bi}-${si}">${L.int}</td>
+          ${s.sport === 'strength' ? '' : `<td id="lp-${bi}-${si}">${L.pct}</td>`}
+          <td id="lr-${bi}-${si}">${L.rpe}</td>
+          <td id="lf-${bi}-${si}">${L.fc}</td>
+          ${s.sport === 'strength' ? '' : `<td id="la-${bi}-${si}">${L.pace}</td>`}
+          <td><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" placeholder="consigne" ${ro}></td>
           <td>${ro ? '' : `<button class="ib red" title="Supprimer la ligne" data-a="sdel" data-b="${bi}" data-s="${si}">✕</button>`}</td>
-        </tr>`).join('')}</tbody>
+        </tr>`; }).join('')}</tbody>
       </table></div>
       ${ro ? '' : `<button class="lk" data-a="sadd" data-b="${bi}">+ ligne</button>`}
     </div>`).join('');
@@ -1181,7 +1310,7 @@ function cloneBlocks(blocks){
   return JSON.parse(JSON.stringify(blocks)).map(b => { b.id = uid(); b.steps.forEach(x => x.id = uid()); return b; });
 }
 function addFromTemplate(aid, t, date){
-  const s = {id:uid(), athleteId:aid, date, sport:t.sport, title:t.title.replace(/^[^—]+—\s*/, ''), blocks:cloneBlocks(t.blocks), bilan:emptyBilan()};
+  const s = {id:newId(), athleteId:aid, date, sport:t.sport, title:t.title.replace(/^[^—]+—\s*/, ''), blocks:cloneBlocks(t.blocks), bilan:emptyBilan()};
   state.sessions.push(s); return s;
 }
 function tplPickerRows(q){
@@ -1242,8 +1371,11 @@ function stravaView(aid){
   return `<div class="cols2 dense" style="margin-top:4px">
     <div class="pane">
       <h4><span class="strava">●</span> Synchroniser avec Strava</h4>
-      <p class="ztxt" style="margin:0 0 6px;font-size:.8rem">Récupère les dernières activités via le connecteur Strava de Claude (compte Strava connecté dans Claude).</p>
-      <button class="btn sm primary" style="background:#fc4c02;border-color:#fc4c02" data-a="stravasync" ${conn==='busy'?'disabled':''}>${conn==='busy'?'Synchronisation…':'Synchroniser les activités récentes'}</button>
+      ${u.strava ? `<p class="ztxt" style="margin:0 0 6px;font-size:.8rem">Compte Strava relié : les nouvelles activités arrivent automatiquement${u.lastSync ? ' (dernière synchronisation : ' + new Date(u.lastSync).toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'}) + ')' : ''}.</p>
+      <button class="btn sm primary" style="background:#fc4c02;border-color:#fc4c02" data-a="stravasync" ${conn==='busy'?'disabled':''}>${conn==='busy'?'Synchronisation…':'Synchroniser maintenant'}</button>`
+      : aid === me.id ? `<p class="ztxt" style="margin:0 0 6px;font-size:.8rem">Reliez votre compte Strava pour importer automatiquement vos activités.</p>
+      <button class="btn sm primary" style="background:#fc4c02;border-color:#fc4c02" data-a="stravalink">Relier mon compte Strava</button>`
+      : `<p class="ztxt" style="margin:0;font-size:.8rem">${esc(u.name)} n'a pas encore relié son compte Strava (à faire depuis son propre espace).</p>`}
       ${ui.stravaMsg ? `<div class="ztxt" style="margin-top:6px;font-size:.78rem">${ui.stravaMsg}</div>` : ''}
     </div>
     <div class="pane">
@@ -1379,9 +1511,8 @@ function applyActivity(aid, act, report){
   if (!act.date){ report.push({...act, result:'Date illisible, ignorée', cls:'warn'}); return; }
   if (!act.sport){ report.push({...act, result:'Type non géré, ignoré', cls:'warn'}); return; }
   if (act.dur < 60){ report.push({...act, result:'Trop courte, ignorée', cls:'warn'}); return; }
-  const key = [aid, act.date, act.name, Math.round(act.dur/60)].join('|');
   const zones = {}; ZONES.forEach(k => zones[k] = {t: act.z[k].t});
-  if (state.imported.includes(key)){ report.push({...act, zones, result:'Déjà importée', cls:'warn'}); return; }
+  if (state.sessions.some(s => s.athleteId === aid && s.date === act.date && s.sport === act.sport && isDone(s) && (s.title === act.name || (s.bilan.comment || '').includes(act.name)))){ report.push({...act, zones, result:'Déjà importée', cls:'warn'}); return; }
   const bilan = emptyBilan(); bilan.validated = true; bilan.validatedAt = new Date().toISOString();
   ZONES.forEach(k => { const a = act.z[k]; if (!a.t) return;
     bilan.zones[k].time = Math.floor(a.t/3600) + ':' + String(Math.round((a.t%3600)/60)).padStart(2,'0');
@@ -1392,8 +1523,7 @@ function applyActivity(aid, act, report){
   let target = state.sessions.find(s => s.athleteId === aid && s.date === act.date && s.sport === act.sport && !isDone(s));
   let result;
   if (target){ bilan.rpe = target.bilan.rpe; bilan.comment = [target.bilan.comment, note].filter(Boolean).join('\n'); target.bilan = bilan; result = 'Bilan ajouté à « ' + (target.title || SPORTS[target.sport].label) + ' »'; }
-  else { bilan.comment = note; target = {id:uid(), athleteId:aid, date:act.date, sport:act.sport, title:act.name, blocks:[], bilan}; state.sessions.push(target); result = 'Séance réalisée créée'; }
-  state.imported.push(key);
+  else { bilan.comment = note; target = {id:newId(), athleteId:aid, date:act.date, sport:act.sport, title:act.name, blocks:[], bilan}; state.sessions.push(target); result = 'Séance réalisée créée'; }
   report.push({...act, zones, result, cls:'ok'});
 }
 async function handleFiles(files){
@@ -1412,38 +1542,19 @@ async function handleFiles(files){
   save(); ui.importReport = report; render();
   toast(report.filter(r => r.cls === 'ok').length + ' activité(s) importée(s)');
 }
-/* Connecteur Strava (capability mcp) — arguments vérifiés à l'exécution via describeTool */
-let mcpNs;
+/* Synchronisation via la fonction serveur */
 async function stravaSync(){
-  const aid = me.role === 'coach' ? ui.athleteId : me.id, u = getUser(aid);
+  const aid = me.role === 'coach' ? ui.athleteId : me.id;
   ui.stravaConn = 'busy'; ui.stravaMsg = ''; render();
   try {
-    if (mcpNs === undefined) mcpNs = (window.claude && window.claude.use) ? await window.claude.use('mcp') : null;
-    if (!mcpNs) throw {code:'unavailable'};
-    let input = {};
-    try { const d = await mcpNs.describeTool('Strava', 'list_activities'); const props = (d && (d.inputSchema || d.input_schema || {}).properties) || {};
-      if ('per_page' in props) input.per_page = 30; if ('limit' in props) input.limit = 30; } catch(_){}
-    const res = await mcpNs.callTool('Strava', 'list_activities', input);
-    let data = res && (res.payload !== undefined ? res.payload : res);
-    if (typeof data === 'string'){ try { data = JSON.parse(data); } catch(_){} }
-    const arr = Array.isArray(data) ? data : (data && (data.activities || data.items || data.data || Object.values(data).find(Array.isArray))) || [];
-    if (!arr.length) throw {code:'empty'};
-    const report = [];
-    arr.forEach(a => {
-      const act = {name: a.name || 'Activité Strava', date: toYmd(a.start_date_local || a.start_date || a.date),
-        sport: stravaSport(a.sport_type || a.type || a.activity_type), dur: +(a.moving_time ?? a.elapsed_time ?? a.duration ?? 0),
-        hr: +(a.average_heartrate || a.average_heart_rate || 0), pw: +(a.average_watts || 0),
-        dist: +(a.distance || 0)};
-      applyActivity(aid, act.sport ? fromSummary(act, u) : {...act, z:emptyAcc()}, report);
-    });
-    save(); ui.importReport = report;
-    ui.stravaMsg = `<span class="ok">${report.filter(r=>r.cls==='ok').length} activité(s) synchronisée(s).</span> Zones attribuées selon la FC moyenne.`;
-  } catch(e){
-    const c = e && e.code;
-    ui.stravaMsg = c === 'unavailable' ? '<span class="warn">Connecteur non disponible ici.</span> Il faut avoir connecté Strava dans les connecteurs de Claude et ouvrir cette page dans Claude. Sinon, utilisez l\'import de fichiers ci-dessous.'
-      : c === 'empty' ? 'Aucune activité renvoyée par Strava.'
-      : '<span class="warn">La synchronisation a échoué</span> (' + esc((e && (e.message || e.code)) || 'erreur') + '). Utilisez l\'import de fichiers en attendant.';
-  }
+    const { data, error } = await sb.functions.invoke('strava', { body: {action:'sync', athlete_id:aid} });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    const rep = (data && data.report) || [];
+    await loadAll();
+    ui.importReport = rep.map(r => ({name:r.name, date:r.date, result:r.result, cls: /erreur|non géré|introuvable/.test(r.result) ? 'warn' : 'ok'}));
+    ui.stravaMsg = `<span class="ok">${rep.length} activité(s) traitée(s).</span>`;
+  } catch(e){ ui.stravaMsg = '<span class="warn">Échec de la synchronisation : ' + esc(e.message || e) + '</span>'; }
   ui.stravaConn = ''; render();
 }
 let toastTimer;
@@ -1451,8 +1562,9 @@ function toast(msg){ let t = document.getElementById('toast'); if (!t){ t = docu
   t.textContent = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = 'none', 2600); }
 
 function coachHome(){
-  const aths = state.users.filter(u => u.role === 'athlete');
-  return `<div class="row" style="justify-content:space-between;margin-top:6px"><h2>Mes athlètes</h2></div>
+  const aths = state.users.filter(u => u.role === 'athlete' && u.approved);
+  const pend = pendingCount();
+  return `<div class="row" style="justify-content:space-between;margin-top:6px"><h2>Mes athlètes</h2>${pend ? `<button class="btn sm" data-a="accounts">${pend} compte(s) à valider</button>` : ''}</div>
     ${weekNav()}
     <div class="cards">${aths.map(a => {
       const real = weekTable(a.id, ui.week, 'realise'), plan = weekTable(a.id, ui.week, 'prevu');
@@ -1461,36 +1573,30 @@ function coachHome(){
       const perSport = SPORT_KEYS.map(sp => [sp, ZONES.reduce((x,z)=>x+real.t[z][sp],0)]);
       const rt = tot(real) || 1;
       return `<button class="ath" data-a="openath" data-id="${a.id}">
-        <div class="row"><span class="avatar">${esc(a.name[0])}</span><h3 style="margin:0">${esc(a.name)}</h3></div>
+        <div class="row"><span class="avatar">${esc((a.name||'?')[0])}</span><h3 style="margin:0">${esc(a.name)}</h3></div>
         <div class="minibar">${perSport.map(([sp,v])=>`<div style="width:${(v/rt*100).toFixed(1)}%;background:${SPORTS[sp].color}"></div>`).join('')}</div>
         <div class="ztxt">Réalisé <b style="color:var(--ink)">${fmt(tot(real))}</b> / prévu ${fmt(tot(plan))}</div>
         <div class="ztxt">Séances réalisées : ${done} / ${plan.list.length} · Jours off : ${real.off}</div>
-      </button>`; }).join('') || '<p class="ztxt">Aucun athlète. Créez un compte dans l\'onglet Comptes.</p>'}</div>`;
+      </button>`; }).join('') || '<p class="ztxt">Aucun athlète validé. Les adhérents créent leur compte sur le site, puis vous les validez dans l\'onglet Comptes.</p>'}</div>`;
 }
 
 function accountsView(){
-  const aths = state.users.filter(u => u.role === 'athlete');
+  const others = state.users.filter(u => u.id !== me.id).sort((a,b) => (a.approved - b.approved) || a.name.localeCompare(b.name));
   return `<h2 style="margin-top:6px">Comptes</h2>
-  <div class="card" style="margin-top:14px">
-    <h3>Ajouter un adhérent</h3>
-    <form id="addUser" class="row" style="align-items:flex-end">
-      <div class="field"><label>Nom complet</label><input id="nu-name" required></div>
-      <div class="field"><label>Identifiant</label><input id="nu-login" required></div>
-      <div class="field"><label>Mot de passe</label><input id="nu-pw" required></div>
-      <button class="btn primary">Créer le compte</button>
-    </form>
-    <div class="err" id="nu-err"></div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <h3>Adhérents</h3>
-    <div class="scroll"><table class="grid"><thead><tr><th style="text-align:left">Nom</th><th>Identifiant</th><th>Nouveau mot de passe</th><th></th></tr></thead>
-    <tbody>${aths.map(a=>`<tr><td style="text-align:left">${esc(a.name)}</td><td>${esc(a.login)}</td>
-      <td><div class="row" style="justify-content:center"><input id="pw-${a.id}" placeholder="nouveau mot de passe" style="max-width:200px;border:1px solid var(--line);border-radius:6px;padding:6px"><button class="btn sm" data-a="resetpw" data-id="${a.id}">Modifier</button></div></td>
-      <td><button class="btn sm danger" data-a="deluser" data-id="${a.id}">Supprimer</button></td></tr>`).join('')}</tbody></table></div>
-  </div>
-  <div class="card" style="margin-top:14px">
-    <h3>Mon mot de passe (coach)</h3>
-    <div class="row"><input id="pw-${me.id}" placeholder="nouveau mot de passe" style="max-width:240px;border:1px solid var(--line);border-radius:6px;padding:7px"><button class="btn sm" data-a="resetpw" data-id="${me.id}">Modifier</button><span class="ztxt" id="pwmsg"></span></div>
+  <p class="ztxt">Les adhérents créent leur compte eux-mêmes (avec Strava ou un e-mail) sur le site. Validez-les ici pour leur donner accès.</p>
+  <div class="pane dense" style="margin-top:8px"><table class="rep">
+    <thead><tr><th>Nom</th><th>Rôle</th><th>Strava</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${others.map(u => `<tr>
+      <td><b>${esc(u.name)}</b></td><td>${u.role === 'coach' ? 'Coach' : 'Adhérent'}</td>
+      <td>${u.strava ? '<span class="strava">●</span> relié' : '—'}</td>
+      <td>${u.role === 'coach' || u.approved ? '<span class="ok">Validé</span>' : '<span class="warn">En attente</span>'}</td>
+      <td style="text-align:right">${u.role === 'coach' ? '' : (u.approved
+        ? `<button class="btn sm" data-a="unapprove" data-id="${u.id}">Suspendre</button>`
+        : `<button class="btn sm primary" data-a="approve" data-id="${u.id}">Valider</button>`) + ` <button class="btn sm danger" data-a="deluser" data-id="${u.id}">Supprimer</button>`}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="ztxt">Aucun autre compte pour l\'instant.</td></tr>'}</tbody>
+  </table></div>
+  <div class="pane dense" style="margin-top:8px"><h4>Mon compte</h4>
+    ${me.strava ? '<span class="ok">✓ Strava relié</span>' : '<button class="btn sm" data-a="stravalink">Relier mon compte Strava</button>'}
   </div>`;
 }
 
@@ -1525,7 +1631,13 @@ document.addEventListener('input', e => {
   if (f === 'title') s.title = el.value;
   else if (f === 'btitle') b.title = el.value;
   else if (f === 'breps') b.reps = el.value;
-  else if (f === 'step'){ if (el.dataset.k === 'zone') return; b.steps[+el.dataset.s][el.dataset.k] = el.value; }
+  else if (f === 'step'){
+    const k = el.dataset.k, st = b.steps[+el.dataset.s];
+    if (k === 'zone' || k === 'crit') return;
+    st[k] = el.value;
+    if (k === 'cval'){ applyCrit(st, s.sport, ctxUser(s)); const L = stepLabelsHTML(st, s), id = `${el.dataset.b}-${el.dataset.s}`;
+      [['li', L.int], ['lp', L.pct], ['lr', L.rpe], ['lf', L.fc], ['la', L.pace]].forEach(([p, v]) => { const e2 = document.getElementById(`${p}-${id}`); if (e2) e2.innerHTML = v; }); }
+  }
   else if (f === 'bz'){ s.bilan.zones[el.dataset.z][el.dataset.k] = el.value; s.bilan.edited = true; }
   else if (f === 'bcomment') s.bilan.comment = el.value;
   else return;
@@ -1536,34 +1648,47 @@ document.addEventListener('change', e => {
   const s = getSession(ui.sessionId); if (!s || !canEdit(s)) return;
   if (f === 'sport'){ s.sport = el.value; save(); render(); }
   else if (f === 'date' && el.value){ s.date = el.value; ui.week = mondayOf(el.value); save(); render(); }
+  else if (f === 'step' && el.dataset.k === 'crit'){ const st = s.blocks[+el.dataset.b].steps[+el.dataset.s]; st.crit = el.value; st.cval = el.value === 'int' ? '' : seedCrit(st, el.value, s.sport, ctxUser(s)); applyCrit(st, s.sport, ctxUser(s)); save(); render(); }
+  else if (f === 'step' && el.dataset.k === 'cval'){ save(); render(); }
   else if (f === 'step' && el.dataset.k === 'mode'){ const st = s.blocks[+el.dataset.b].steps[+el.dataset.s]; st.mode = el.value; if (el.value === 'dist' && !st.unit) st.unit = s.sport === 'swim' ? 'm' : 'km'; save(); render(); }
   else if (f === 'step' && el.dataset.k === 'zone'){ setStepInt(s.blocks[+el.dataset.b].steps[+el.dataset.s], el.value); save(); render(); }
 });
 
 document.addEventListener('submit', e => {
   e.preventDefault();
-  if (e.target.id === 'loginForm'){
-    const lg = document.getElementById('lg').value.trim().toLowerCase(), pw = document.getElementById('pw').value;
-    const u = state.users.find(x => x.login.toLowerCase() === lg);
-    if (!u || u.pw !== pwHash(lg, pw)){ document.getElementById('err').textContent = 'Identifiant ou mot de passe incorrect.'; return; }
-    me = u; ui.view = 'home'; ui.tab = 'agenda'; ui.week = mondayOf(todayStr());
-    try { sessionStorage.setItem(STORE_KEY+'-me', u.id); } catch(e){}
-    render();
-  } else if (e.target.id === 'addUser'){
-    const name = document.getElementById('nu-name').value.trim(), login = document.getElementById('nu-login').value.trim().toLowerCase(), pw = document.getElementById('nu-pw').value;
-    const err = document.getElementById('nu-err');
-    if (!name || !login || !pw){ err.textContent = 'Tous les champs sont obligatoires.'; return; }
-    if (state.users.some(u => u.login.toLowerCase() === login)){ err.textContent = 'Cet identifiant existe déjà.'; return; }
-    state.users.push({id:'u-'+uid(), login, name, role:'athlete', pw:pwHash(login, pw)}); save(); render();
-  }
+  if (e.target.id === 'authForm') authSubmit(e.target.dataset.mode);
 });
+async function authSubmit(mode){
+  const v = id => (document.getElementById(id) || {}).value || '';
+  ui.authErr = ''; ui.authMsg = '';
+  try {
+    if (mode === 'login'){
+      const { error } = await sb.auth.signInWithPassword({ email:v('lg').trim(), password:v('pw') });
+      if (error) throw new Error(error.message === 'Invalid login credentials' ? 'E-mail ou mot de passe incorrect.' : error.message === 'Email not confirmed' ? 'Confirmez d\'abord votre e-mail (lien reçu à l\'inscription).' : error.message);
+      await startSession();
+    } else if (mode === 'signup'){
+      const { data, error } = await sb.auth.signUp({ email:v('lg').trim(), password:v('pw'), options:{ data:{ name:v('su-name').trim() }, emailRedirectTo:SITE_URL } });
+      if (error) throw error;
+      if (data.session) await startSession();
+      else { ui.authMode = 'login'; ui.authMsg = 'Compte créé. Cliquez sur le lien reçu par e-mail pour le confirmer, puis connectez-vous.'; render(); }
+    } else if (mode === 'reset'){
+      const { error } = await sb.auth.resetPasswordForEmail(v('lg').trim(), { redirectTo:SITE_URL });
+      if (error) throw error;
+      ui.authMsg = 'Si ce compte existe, un e-mail de réinitialisation vient d\'être envoyé.'; render();
+    } else if (mode === 'newpw'){
+      const { error } = await sb.auth.updateUser({ password:v('pw') });
+      if (error) throw error;
+      ui.authMode = 'login'; toast('Mot de passe modifié'); await startSession();
+    }
+  } catch(err){ ui.authErr = err.message || String(err); render(); }
+}
 
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return;
   const a = el.dataset.a, s = ui.sessionId ? getSession(ui.sessionId) : null;
   const bi = el.dataset.b !== undefined ? +el.dataset.b : null;
   switch (a){
-    case 'logout': me = null; try { sessionStorage.removeItem(STORE_KEY+'-me'); } catch(e){} render(); break;
+    case 'logout': sb.auth.signOut().then(() => { me = null; state = null; ui.view = 'home'; ui.athleteId = null; render(); }); break;
     case 'home': ui.view = 'home'; ui.athleteId = null; ui.sessionId = null; render(); break;
     case 'accounts': ui.view = 'accounts'; ui.sessionId = null; render(); break;
     case 'openath': ui.view = 'athlete'; ui.athleteId = el.dataset.id; ui.tab = 'agenda'; render(); break;
@@ -1593,7 +1718,7 @@ document.addEventListener('click', e => {
       break; }
     case 'pick': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id;
-      const ns = {id:uid(), athleteId:aid, date:pendingDate, sport:el.dataset.v, title:'', blocks:[block('Échauffement',1,[step('10:00','Z1')])], bilan:emptyBilan()};
+      const ns = {id:newId(), athleteId:aid, date:pendingDate, sport:el.dataset.v, title:'', blocks:[block('Échauffement',1,[step('10:00','Z1')])], bilan:emptyBilan()};
       state.sessions.push(ns); save(); closeModal();
       ui.sessionId = ns.id; ui.tab = 'agenda'; render();
       const t = document.querySelector('[data-f="title"]'); if (t) t.focus();
@@ -1650,15 +1775,17 @@ document.addEventListener('click', e => {
       toast(v ? 'Séance validée' + (sum(realZones(t)) ? ' : ' + fmtC(sum(realZones(t))) : '') : 'Validation annulée');
       break; }
     case 'rpe': s.bilan.rpe = s.bilan.rpe === el.dataset.v ? '' : el.dataset.v; save(); render(); break;
-    case 'resetpw': {
-      const u = getUser(el.dataset.id), inp = document.getElementById('pw-'+u.id);
-      if (!inp.value){ inp.focus(); return; }
-      u.pw = pwHash(u.login, inp.value); inp.value = ''; save();
-      inp.placeholder = 'Mot de passe modifié ✓'; break; }
+    case 'authmode': ui.authMode = el.dataset.v; ui.authErr = ''; ui.authMsg = ''; render(); break;
+    case 'stravalogin': stravaAuthorize('login'); break;
+    case 'stravalink': stravaAuthorize('link'); break;
+    case 'refresh': startSession(); break;
+    case 'approve': case 'unapprove': { const u = getUser(el.dataset.id); u.approved = a === 'approve'; save(); render(); toast(u.name + (u.approved ? ' validé(e)' : ' suspendu(e)')); break; }
     case 'deluser': {
       const u = getUser(el.dataset.id);
-      confirmBox(`Supprimer le compte de ${u.name} et toutes ses séances ?`, () => {
-        state.users = state.users.filter(x => x !== u); state.sessions = state.sessions.filter(x => x.athleteId !== u.id); save(); render(); });
+      confirmBox(`Supprimer le compte de ${u.name} et toutes ses séances ? Cette action est définitive.`, async () => {
+        const r = await sb.from('profiles').delete().eq('id', u.id);
+        if (r.error){ toast('Suppression impossible : ' + r.error.message); return; }
+        state.users = state.users.filter(x => x !== u); state.sessions = state.sessions.filter(x => x.athleteId !== u.id); takeSnapshot(); render(); });
       break; }
   }
 });
@@ -1668,7 +1795,7 @@ function moveSession(s, date, copy){
   if (!copy && s.date === date) return;
   let target = s;
   if (copy){
-    target = JSON.parse(JSON.stringify(s)); target.id = uid(); target.bilan = emptyBilan();
+    target = JSON.parse(JSON.stringify(s)); target.id = newId(); target.bilan = emptyBilan();
     target.blocks.forEach(b => { b.id = uid(); b.steps.forEach(x => x.id = uid()); });
     state.sessions.push(target);
   }
@@ -1722,9 +1849,46 @@ document.addEventListener('dragleave', e => { const z = e.target.closest && e.ta
 document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('#dropzone'); if (z){ e.preventDefault(); z.classList.remove('over'); if (e.dataTransfer.files.length) handleFiles(Array.from(e.dataTransfer.files)); } });
 
 /* ===================== Démarrage ===================== */
-state = migrate(load());
-try { const id = sessionStorage.getItem(STORE_KEY+'-me'); if (id) me = getUser(id) || null; } catch(e){}
-render();
+async function startSession(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session){ me = null; state = null; render(); return; }
+  const { data:prof, error } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+  if (error || !prof){ ui.authErr = 'Profil introuvable. Réessayez dans un instant.'; me = null; render(); return; }
+  me = userFrom(prof); state = null; render();
+  try {
+    if (me.role === 'coach' || me.approved) await loadAll();
+    else state = {users:[me], sessions:[], library:{sessions:[], plans:[]}};
+  } catch(e){ $app.innerHTML = '<div class="loading">Erreur de chargement : ' + esc(e.message || e) + '</div>'; return; }
+  render();
+}
+async function handleStravaReturn(){
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  const code = q.get('code'), st = q.get('state'), scope = q.get('scope') || '';
+  history.replaceState(null, '', location.pathname);
+  if (q.get('error')){ ui.authErr = 'Connexion Strava annulée.'; return; }
+  if (!/activity:read/.test(scope)) toast('Sans l\'accès aux activités, l\'import Strava ne fonctionnera pas.');
+  $app.innerHTML = '<div class="loading">Connexion à Strava…</div>';
+  try {
+    const { data, error } = await sb.functions.invoke('strava', { body:{ action: st === 'link' ? 'link' : 'login', code } });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    if (st === 'link') toast('Compte Strava relié : import des activités en cours');
+    else {
+      let r = await sb.auth.verifyOtp({ token_hash:data.token_hash, type:'email' });
+      if (r.error) r = await sb.auth.verifyOtp({ token_hash:data.token_hash, type:'magiclink' });
+      if (r.error) throw r.error;
+    }
+  } catch(e){ ui.authErr = 'Connexion Strava impossible : ' + (e.message || e); }
+}
+(async () => {
+  if (!sb){ $app.innerHTML = '<div class="loading">Configuration manquante : renseignez le fichier config.js.</div>'; return; }
+  sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY'){ ui.authMode = 'newpw'; me = null; state = null; render(); } });
+  $app.innerHTML = '<div class="loading">Chargement…</div>';
+  await handleStravaReturn();
+  if (ui.authMode === 'newpw'){ render(); return; }
+  await startSession();
+})();
 </script>
 </body>
 </html>
