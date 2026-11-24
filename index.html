@@ -264,6 +264,27 @@ table.bz tfoot td{font-size:.8rem;font-weight:700;padding:3px 2px}
 .lrow .ds{color:var(--muted);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lrow .zbar{height:6px;min-width:60px}
 .prev{grid-column:2/-1;font-size:.74rem;color:var(--ink);background:#f7f9fa;border-radius:5px;padding:4px 7px;line-height:1.5}
+/* Bilan de la semaine sur la page Semaine */
+.wkb{display:grid;grid-template-columns:minmax(0,500px) minmax(0,1fr);gap:8px;margin-top:8px;align-items:stretch}
+.wkb table.cmp{font-size:.74rem;padding:3px;border-spacing:1px}
+.wkb table.cmp th,.wkb table.cmp td{padding:2px 5px}
+.wkb .kp{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:6px 10px;display:flex;flex-wrap:wrap;gap:4px 18px;align-content:center;font-size:.78rem;color:var(--muted)}
+.wkb .kp b{color:var(--ink);font-family:"Barlow Semi Condensed";font-size:1.15rem;margin-left:3px}
+.wkb .kp .sp{display:flex;gap:10px;flex-wrap:wrap;width:100%;font-size:.74rem}
+@media (max-width:900px){.wkb{grid-template-columns:1fr}}
+/* Durée ou distance, graphique, icônes */
+.dur{display:flex;gap:2px;align-items:center}
+.dur .md{width:38px!important;padding:3px 1px!important;text-align:center}
+.dur .dv{width:58px!important}
+.dur .un{width:46px!important;padding:3px 1px!important}
+.dur .est{font-size:.66rem;color:var(--muted);white-space:nowrap;padding-left:2px}
+.sgraph{margin:-2px 0 8px;border-radius:6px;background:#f7f9fa;padding:4px 4px 0;border:1px solid #eef2f5}
+.sgraph svg{display:block;width:100%}
+.sgraph .ax{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted);padding:1px 2px 2px}
+.lgraph{width:90px;height:20px}
+.lgraph svg{display:block;width:100%;height:20px}
+.ico{display:inline-block;vertical-align:-2px;flex:none}
+.c2 .t .ico{margin-right:3px}
 /* Profil & zones */
 .prof{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prof .pane h4{display:flex;align-items:center;gap:6px}
@@ -320,6 +341,13 @@ const SPORTS = {
   strength: {label:'Renfo',    color:'var(--strength)', bg:'var(--strength-bg)'}
 };
 const SPORT_KEYS = Object.keys(SPORTS);
+const SPORT_ICONS = {
+  swim: '<circle cx="17" cy="6.5" r="2"/><path d="M3 12.5l5-3 4 2.2 3.5-3.2"/><path d="M2 17.5c2 0 2-1.4 4-1.4s2 1.4 4 1.4 2-1.4 4-1.4 2 1.4 4 1.4 2-1.4 4-1.4"/><path d="M2 21c2 0 2-1.4 4-1.4s2 1.4 4 1.4 2-1.4 4-1.4 2 1.4 4 1.4 2-1.4 4-1.4"/>',
+  bike: '<circle cx="5.5" cy="16.5" r="3.8"/><circle cx="18.5" cy="16.5" r="3.8"/><path d="M5.5 16.5l3.5-7h6l3.5 7M9 9.5L7.8 6H6M15 9.5l-3.2 7H5.5"/><path d="M14 6h2.5"/>',
+  run: '<circle cx="15" cy="4" r="2"/><path d="M8.5 21l2.5-5.5 3 2.5v4.5"/><path d="M11 15.5l1.8-6.5 3.7 3.2 3-1"/><path d="M12.8 9L8.7 9.8 6.8 13"/>',
+  strength: '<path d="M3.5 9.5v5M6.5 7v10M17.5 7v10M20.5 9.5v5M6.5 12h11"/>'
+};
+const icon = (k, size=14, color='currentColor') => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SPORT_ICONS[k]||''}</svg>`;
 const ZONES = ['Z1','Z2','Z3'];
 const DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 const MONTHS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
@@ -626,12 +654,33 @@ document.addEventListener('visibilitychange', async () => {
 });
 
 /* ===================== Calculs ===================== */
+// Vitesse estimée (m/s) d'une ligne en distance, d'après l'intensité et le profil de l'athlète
+function speedFor(st, sport, u){
+  const it = INT_BY[st.int] || INT_BY[{Z1:'I2', Z2:'I4', Z3:'I5'}[st.zone] || 'I2'];
+  const pr = it[sport] || [60, 70];
+  const mid = !pr[0] ? pr[1] - 5 : pr[1] == null ? pr[0] + 5 : (pr[0] + pr[1]) / 2;
+  const ref = u ? refOf(u, sport) : null;
+  if (sport === 'run') return (ref || 14) * mid / 100 / 3.6;          // VMA par défaut : 14 km/h
+  if (sport === 'swim') return 100 / ((ref || 120) / (mid / 100));     // allure seuil par défaut : 2:00/100 m
+  if (sport === 'bike') return ({I1:24, I2:28, I3:32, I4:35, I5:38, I6:40, I7:45}[it.k] || 28) / 3.6;
+  return 1;
+}
+const distMeters = st => { const d = parseFloat(String(st.dist || '').replace(',', '.')); return d > 0 ? (st.unit === 'km' ? d * 1000 : d) : 0; };
+function stepSec(st, sport, u){
+  if (st.mode !== 'dist') return parseMS(st.dur);
+  const m = distMeters(st); if (!m) return 0;
+  return m / speedFor(st, sport, u);
+}
+const ctxUser = s => (s && s.athleteId) ? getUser(s.athleteId) : (ui.athleteId ? getUser(ui.athleteId) : (me && me.role !== 'coach' ? getUser(me.id) : null));
+const fmtEst = sec => { sec = Math.round(sec); return sec >= 3600 ? Math.floor(sec/3600) + ':' + String(Math.floor(sec%3600/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0') : mmss(sec); };
+
 function plannedZones(s){
   const z = {Z1:0,Z2:0,Z3:0};
-  for (const b of s.blocks){ const r = Math.max(0, parseInt(b.reps)||0); for (const st of b.steps){ z[st.zone] = (z[st.zone]||0) + r*parseMS(st.dur); } }
+  const u = ctxUser(s);
+  for (const b of s.blocks){ const r = Math.max(0, parseInt(b.reps)||0); for (const st of b.steps){ z[st.zone] = (z[st.zone]||0) + r*stepSec(st, s.sport, u); } }
   return z;
 }
-function blockDur(b){ const r = Math.max(0, parseInt(b.reps)||0); return r * b.steps.reduce((a,st)=>a+parseMS(st.dur),0); }
+function blockDur(b, s){ const r = Math.max(0, parseInt(b.reps)||0), u = ctxUser(s), sp = s ? s.sport : 'run'; return r * b.steps.reduce((a,st)=>a+stepSec(st, sp, u),0); }
 function realZones(s){ const z = {}; for (const k of ZONES) z[k] = parseHM(s.bilan.zones[k].time); return z; }
 const sum = z => ZONES.reduce((a,k)=>a+(z[k]||0),0);
 // Une séance est réalisée quand elle est validée (ou, pour les anciennes données, quand un bilan a été saisi)
@@ -851,8 +900,20 @@ function monthBilanView(aid){
 
 function chipInner(s){
   const sp = SPORTS[s.sport], done = isDone(s);
-  return `${canEdit(s) ? `<span class="vchk ${done?'on':''}" title="${done?'Séance validée — cliquer pour annuler':'Valider la séance réalisée'}" data-a="validate" data-id="${s.id}">✓</span>` : ''}<div class="t" style="color:${sp.color}">${esc(s.title || sp.label)}</div>
+  return `${canEdit(s) ? `<span class="vchk ${done?'on':''}" title="${done?'Séance validée — cliquer pour annuler':'Valider la séance réalisée'}" data-a="validate" data-id="${s.id}">✓</span>` : ''}<div class="t" style="color:${sp.color}">${icon(s.sport, 12)}${esc(s.title || sp.label)}</div>
     <div class="m"><span>${fmtC(sum(plannedZones(s)))}</span>${done ? `<span class="done">✓ ${fmtC(sum(realZones(s)))}</span>` : ''}</div>`;
+}
+function weekMini(aid){
+  const real = weekTable(aid, ui.week, 'realise'), plan = weekTable(aid, ui.week, 'prevu');
+  const shown = ui.mode === 'prevu' ? plan : real, done = plan.list.filter(isDone).length;
+  const spT = (t, sp) => ZONES.reduce((a,z)=>a+t[z][sp],0);
+  return `${zoneTableHTML(shown.t)}
+    <div class="kp">
+      <div class="seg" style="font-size:.74rem"><button class="${ui.mode==='realise'?'on':''}" data-a="mode" data-v="realise">Réalisé</button><button class="${ui.mode==='prevu'?'on':''}" data-a="mode" data-v="prevu">Prévu</button></div>
+      <span>Réalisé<b>${fmtC(tTotal(real.t))}</b></span><span>Prévu<b>${fmtC(tTotal(plan.t))}</b></span>
+      <span>Séances<b>${done}/${plan.list.length}</b></span><span>Jours off<b>${real.off}</b></span>
+      <div class="sp">${SPORT_KEYS.map(sp=>`<span style="color:${SPORTS[sp].color}">${icon(sp,12)} ${fmtC(spT(real.t,sp))} / ${fmtC(spT(plan.t,sp))}</span>`).join('')}</div>
+    </div>`;
 }
 function weekPage(aid){
   const list = sessionsOf(aid, ui.week), today = todayStr();
@@ -871,6 +932,7 @@ function weekPage(aid){
   const s = ui.sessionId ? getSession(ui.sessionId) : null;
   return `<div class="ag">${cols}</div>
     <div class="hint">Glissez une séance sur un autre jour pour la déplacer (Ctrl ou Alt enfoncé pour la copier).</div>
+    <div class="wkb" id="wkbilan">${weekMini(aid)}</div>
     ${s ? detailHTML(s) : '<div class="pane empty" style="margin-top:8px">Aucune séance cette semaine. Utilisez « + » sur un jour pour en créer une.</div>'}`;
 }
 
@@ -887,6 +949,23 @@ function zoneBar(z){
   const tot = sum(z) || 1;
   return `<div class="zbar">${ZONES.map(k=>`<div style="width:${(z[k]/tot*100).toFixed(1)}%;background:var(--z${k[1]})"></div>`).join('')}</div>`;
 }
+// Profil d'intensité de la séance : largeur = durée, hauteur = intensité (I1 à I7)
+function sessionGraph(s, hgt = 46, axis = false){
+  const u = ctxUser(s), segs = [];
+  s.blocks.forEach(b => { const r = Math.min(60, Math.max(0, parseInt(b.reps) || 0));
+    for (let i = 0; i < r; i++) b.steps.forEach(st => { const d = stepSec(st, s.sport, u); if (d > 0) segs.push({d, st, b}); }); });
+  const tot = segs.reduce((a, x) => a + x.d, 0);
+  if (!tot) return axis ? '<div class="ax"><span>Ajoutez des durées ou des distances pour voir le profil de la séance</span></div>' : '';
+  let x = 0;
+  const rects = segs.map(({d, st, b}) => {
+    const k = st.int || {Z1:'I2', Z2:'I4', Z3:'I5'}[st.zone] || 'I2', lvl = +k[1], it = INT_BY[k];
+    const w = d / tot * 1000, y = hgt - (lvl / 7) * (hgt - 2);
+    const r = `<rect x="${x.toFixed(2)}" y="${y.toFixed(1)}" width="${Math.max(w - (w > 3 ? 0.6 : 0), 0.4).toFixed(2)}" height="${(hgt - y).toFixed(1)}" fill="${it.c}"><title>${esc(b.title || 'Bloc')} · ${k} ${it.n} · ${fmtEst(d)}</title></rect>`;
+    x += w; return r;
+  }).join('');
+  const marks = axis ? [0, 0.25, 0.5, 0.75, 1].map(f => `<span>${fmtC(tot * f) === '–' ? '0' : fmtC(tot * f)}</span>`).join('') : '';
+  return `<svg viewBox="0 0 1000 ${hgt}" preserveAspectRatio="none" height="${hgt}" role="img" aria-label="Profil d'intensité de la séance">${[2,4,6].map(l => `<line x1="0" x2="1000" y1="${(hgt - l/7*(hgt-2)).toFixed(1)}" y2="${(hgt - l/7*(hgt-2)).toFixed(1)}" stroke="#e3e8ed" stroke-width="1" vector-effect="non-scaling-stroke"/>`).join('')}${rects}</svg>${axis ? `<div class="ax">${marks}</div>` : ''}`;
+}
 function summaryHTML(s){
   const z = plannedZones(s);
   return `Prévu <b>${fmtC(sum(z))}</b>${zoneBar(z)}<span>${ZONES.map(k=>`${k} ${fmtC(z[k])}`).join(' · ')}</span>`;
@@ -901,15 +980,18 @@ function detailHTML(s){
     <div class="blk">
       <div class="bh">
         <span class="n">B${bi+1}</span>
-        <input class="bt" placeholder="Titre du bloc" data-f="btitle" data-b="${bi}" value="${esc(b.title)}" ${ro}>
+        <input class="bt" list="blk-titles" placeholder="Bloc ${bi+1}" data-f="btitle" data-b="${bi}" value="${esc(b.title)}" ${ro}>
         <span style="font-size:.75rem;color:var(--muted)">×</span><input class="rp" type="number" min="1" title="Répétitions" data-f="breps" data-b="${bi}" value="${esc(b.reps)}" ${ro}>
-        <span class="du" id="bdur-${bi}">${fmtC(blockDur(b))}</span>
+        <span class="du" id="bdur-${bi}">${fmtC(blockDur(b, s))}</span>
         ${ro ? '' : `<button class="ib" title="Monter" data-a="bup" data-b="${bi}">↑</button><button class="ib" title="Descendre" data-a="bdown" data-b="${bi}">↓</button><button class="ib" title="Dupliquer" data-a="bdup" data-b="${bi}">⧉</button><button class="ib red" title="Supprimer le bloc" data-a="bdel" data-b="${bi}">✕</button>`}
       </div>
       <div class="scroll"><table class="st">
-        <thead><tr><th style="width:70px">Temps</th><th style="width:62px">FC</th><th style="width:96px">Intensité</th><th style="width:150px">Cible athlète</th><th style="width:42px">RPE</th><th style="width:62px">Taux</th><th style="width:90px">Puiss./val.</th><th>Autre</th><th style="width:22px"></th></tr></thead>
+        <thead><tr><th style="width:178px">Durée / distance</th><th style="width:62px">FC</th><th style="width:96px">Intensité</th><th style="width:150px">Cible athlète</th><th style="width:42px">RPE</th><th style="width:62px">Taux</th><th style="width:90px">Puiss./val.</th><th>Autre</th><th style="width:22px"></th></tr></thead>
         <tbody>${b.steps.map((st, si) => `<tr>
-          <td><input placeholder="mm:ss" data-f="step" data-b="${bi}" data-s="${si}" data-k="dur" value="${esc(st.dur)}" ${ro}></td>
+          <td><div class="dur">${s.sport === 'strength' ? '' : `<select class="md" title="Répétition au temps ou à la distance" data-f="step" data-b="${bi}" data-s="${si}" data-k="mode" ${ro}><option value="time" ${st.mode !== 'dist' ? 'selected' : ''}>⏱</option><option value="dist" ${st.mode === 'dist' ? 'selected' : ''}>📏</option></select>`}
+            ${st.mode === 'dist' && s.sport !== 'strength'
+              ? `<input class="dv" inputmode="decimal" placeholder="${s.sport === 'swim' ? '400' : '1'}" data-f="step" data-b="${bi}" data-s="${si}" data-k="dist" value="${esc(st.dist || '')}" ${ro}><select class="un" data-f="step" data-b="${bi}" data-s="${si}" data-k="unit" ${ro}><option value="m" ${st.unit === 'm' ? 'selected' : ''}>m</option><option value="km" ${st.unit === 'km' ? 'selected' : ''}>km</option></select><span class="est" id="est-${bi}-${si}" title="Durée estimée d'après l'intensité et le profil">≈ ${fmtEst(stepSec(st, s.sport, ctxUser(s)))}</span>`
+              : `<input placeholder="mm:ss" data-f="step" data-b="${bi}" data-s="${si}" data-k="dur" value="${esc(st.dur)}" ${ro}>`}</div></td>
           <td><input placeholder="bpm" data-f="step" data-b="${bi}" data-s="${si}" data-k="fc" value="${esc(st.fc)}" ${ro}></td>
           <td><select data-f="step" data-b="${bi}" data-s="${si}" data-k="zone" ${ro}>${s.sport === 'strength' || !st.int ? ZONES.map(z=>`<option value="${z}" ${!st.int && z===st.zone?'selected':''}>${z}</option>`).join('') : ''}${INTS.map(it=>`<option value="${it.k}" ${st.int===it.k?'selected':''}>${it.k} · ${it.z}</option>`).join('')}</select></td>
           <td>${(() => { const t = stepTarget(st, s.sport, getUser(s.athleteId)); if (!t) return '<span class="tgt none">—</span>';
@@ -928,14 +1010,16 @@ function detailHTML(s){
   return `<div class="detail dense">
     <div class="pane" style="border-top:3px solid ${sp.color}">
       <div class="shrow">
-        <select data-f="sport" style="color:${sp.color}" ${ro}>${SPORT_KEYS.map(k=>`<option value="${k}" ${k===s.sport?'selected':''}>${SPORTS[k].label}</option>`).join('')}</select>
+        <span style="color:${sp.color}">${icon(s.sport, 20)}</span><select data-f="sport" style="color:${sp.color}" ${ro}>${SPORT_KEYS.map(k=>`<option value="${k}" ${k===s.sport?'selected':''}>${SPORTS[k].label}</option>`).join('')}</select>
         <input class="ti" placeholder="Titre de la séance" data-f="title" value="${esc(s.title)}" ${ro}>
         <input type="date" data-f="date" value="${s.date}" ${ro}>
         ${ro ? '' : `<button class="ib" title="Déplacer au jour précédent" data-a="mvday" data-v="-1">◀</button><button class="ib" title="Déplacer au jour suivant" data-a="mvday" data-v="1">▶</button><button class="ib" title="Dupliquer au lendemain" data-a="dupsess">⧉</button>${me.role==='coach' ? `<button class="ib" title="Enregistrer comme séance type" data-a="savetpl">★</button>` : ''}<button class="ib red" title="Supprimer la séance" data-a="delsess">🗑</button>`}
       </div>
       <div class="sline" id="summary">${summaryHTML(s)}</div>
+      <div class="sgraph" id="sgraph">${sessionGraph(s, 46, true)}</div>
       ${blocks || '<div class="empty">Aucun bloc.</div>'}
       ${ro ? '' : `<button class="lk" data-a="badd">+ bloc</button>`}
+      <datalist id="blk-titles">${['Échauffement','Éducatifs','Gammes','Corps de séance','Fractionné','Série','Récupération','Retour au calme'].map(t=>`<option value="${t}">`).join('')}</datalist>
       <span class="ztxt" style="font-size:.68rem;float:right;margin-top:3px">45 = 45 min · 3:30 = 3 min 30 s · 1:30:00 = 1 h 30</span>
     </div>
     <div class="pane">
@@ -1095,7 +1179,7 @@ function genDefaults(){
 function generatorHTML(){
   const g = genDefaults(), plan = generatePlan(g);
   const opt = (arr, v) => arr.map(([k,l]) => `<option value="${k}" ${k===String(v)?'selected':''}>${l}</option>`).join('');
-  const rows = plan.map(wk => { const tot = wk.sessions.reduce((a,s)=>a+s.blocks.reduce((x,b)=>x+blockDur(b),0),0), ph = PHASES[wk.phase];
+  const rows = plan.map(wk => { const tot = wk.sessions.reduce((a,s)=>a+s.blocks.reduce((x,b)=>x+blockDur(b, s),0),0), ph = PHASES[wk.phase];
     return `<div class="gw"><b>S${wk.w+1}</b><span class="ph" style="color:${ph[1]}">${ph[0]}</span><b>${fmtC(tot)}</b>
       <div class="ss">${wk.sessions.sort((a,b)=>a.day-b.day).map(s=>`<span style="background:${SPORTS[s.sport].bg};color:${SPORTS[s.sport].color}" title="${DAYS[s.day]} · ${esc(s.title)}">${DAYS[s.day]} ${esc(s.title)}</span>`).join('')}</div></div>`; }).join('');
   const total = plan.reduce((a,wk)=>a+wk.sessions.length,0);
@@ -1116,7 +1200,7 @@ function generatorHTML(){
 
 /* ===================== Bibliothèque ===================== */
 function nextMonday(){ const t = todayStr(), m = mondayOf(t); return m === t ? t : addDays(m, 7); }
-function tplDur(t){ return t.blocks.reduce((a,b)=>a+blockDur(b),0); }
+function tplDur(t){ return t.blocks.reduce((a,b)=>a+blockDur(b, t),0); }
 function tplPreview(t){
   return t.blocks.map(b => {
     const inner = b.steps.map(st => [st.dur, st.int ? st.int + ' (' + st.zone + ')' : st.zone, st.puiss, st.fc, st.autre].filter(Boolean).join(' ')).join(' ; ');
@@ -1145,8 +1229,8 @@ function libraryView(aid){
   const rows = tpls.map(t => {
     const z = plannedZones(t), open = ui.libOpen === t.id;
     return `<div class="lrow"><div class="c" style="background:${SPORTS[t.sport].color}"></div>
-      <div><div class="tt">${esc(t.title)}</div><div class="ds">${esc(t.desc||'')}</div></div>
-      <span class="du2" style="font-weight:700;text-align:right">${fmtC(tplDur(t))}</span>${zoneBar(z)}
+      <div><div class="tt"><span style="color:${SPORTS[t.sport].color}">${icon(t.sport, 13)}</span> ${esc(t.title)}</div><div class="ds">${esc(t.desc||'')}</div></div>
+      <span class="du2" style="font-weight:700;text-align:right">${fmtC(tplDur(t))}</span><div class="lgraph">${sessionGraph(t, 20)}</div>
       <div class="act dense"><button class="ib" data-a="libopen" data-id="${t.id}" title="Détail">${open?'▲':'▼'}</button><input type="date" id="libd-${t.id}" value="${todayStr()}"><button class="btn sm" data-a="addtpl" data-id="${t.id}">Ajouter</button>${me.role==='coach'?`<button class="ib red" title="Retirer de la bibliothèque" data-a="libdel" data-id="${t.id}">✕</button>`:''}</div>
       ${open ? `<div class="prev">${tplPreview(t)}</div>` : ''}
     </div>`; }).join('');
@@ -1412,7 +1496,10 @@ function refreshSessionBits(s){
     const inp = document.querySelector(`[data-f="bz"][data-z="${z}"][data-k="${k}"]`); if (inp) inp.value = s.bilan.zones[z][k];
   }));
   const sm = document.getElementById('summary'); if (sm) sm.innerHTML = summaryHTML(s);
-  s.blocks.forEach((b,i)=>{ const el = document.getElementById('bdur-'+i); if (el) el.textContent = fmt(blockDur(b)); });
+  s.blocks.forEach((b,i)=>{ const el = document.getElementById('bdur-'+i); if (el) el.textContent = fmtC(blockDur(b, s));
+    b.steps.forEach((st,j) => { const e2 = document.getElementById(`est-${i}-${j}`); if (e2) e2.textContent = '≈ ' + fmtEst(stepSec(st, s.sport, ctxUser(s))); }); });
+  const sg = document.getElementById('sgraph'); if (sg) sg.innerHTML = sessionGraph(s, 46, true);
+  const wb = document.getElementById('wkbilan'); if (wb) wb.innerHTML = weekMini(s.athleteId);
   const bt = document.getElementById('bztot'); if (bt) bt.innerHTML = bilanTotals(s);
   const ch = document.getElementById('chip-'+s.id); if (ch) ch.innerHTML = chipInner(s);
 }
@@ -1435,6 +1522,7 @@ document.addEventListener('change', e => {
   const s = getSession(ui.sessionId); if (!s || !canEdit(s)) return;
   if (f === 'sport'){ s.sport = el.value; save(); render(); }
   else if (f === 'date' && el.value){ s.date = el.value; ui.week = mondayOf(el.value); save(); render(); }
+  else if (f === 'step' && el.dataset.k === 'mode'){ const st = s.blocks[+el.dataset.b].steps[+el.dataset.s]; st.mode = el.value; if (el.value === 'dist' && !st.unit) st.unit = s.sport === 'swim' ? 'm' : 'km'; save(); render(); }
   else if (f === 'step' && el.dataset.k === 'zone'){ setStepInt(s.blocks[+el.dataset.b].steps[+el.dataset.s], el.value); save(); render(); }
 });
 
@@ -1489,7 +1577,7 @@ document.addEventListener('click', e => {
     case 'stab': ui.stab = el.dataset.v; render(); break;
     case 'new':
       pendingDate = el.dataset.d;
-      openModal(`<h3>Nouvelle séance · ${longDate(pendingDate)}</h3><div class="sportpick">${SPORT_KEYS.map(k=>`<button style="background:${SPORTS[k].bg};border-left-color:${SPORTS[k].color};color:${SPORTS[k].color}" data-a="pick" data-v="${k}">${SPORTS[k].label}</button>`).join('')}</div><div class="row" style="justify-content:flex-end"><button class="btn" data-a="mclose">Annuler</button></div>`);
+      openModal(`<h3>Nouvelle séance · ${longDate(pendingDate)}</h3><div class="sportpick">${SPORT_KEYS.map(k=>`<button style="background:${SPORTS[k].bg};border-left-color:${SPORTS[k].color};color:${SPORTS[k].color}" data-a="pick" data-v="${k}">${icon(k, 18)} ${SPORTS[k].label}</button>`).join('')}</div><div class="row" style="justify-content:flex-end"><button class="btn" data-a="mclose">Annuler</button></div>`);
       break;
     case 'pick': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id;
@@ -1527,7 +1615,11 @@ document.addEventListener('click', e => {
     case 'mclose': if (el.classList.contains('modal-bg') && e.target !== el) break; closeModal(); break;
     case 'myes': { const fn = pendingConfirm; pendingConfirm = null; closeModal(); if (fn) fn(); break; }
     case 'delsess': confirmBox('Supprimer définitivement cette séance et son bilan ?', () => { state.sessions = state.sessions.filter(x => x !== s); save(); ui.sessionId = null; render(); }); break;
-    case 'badd': s.blocks.push(block('', 1, [step('', 'Z1')])); save(); render(); break;
+    case 'badd': {
+      const n = s.blocks.length, last = n ? (s.blocks[n-1].title || '') : '';
+      const title = !n ? 'Échauffement' : /retour|calme/i.test(last) ? 'Corps de séance ' + (n + 1) : n === 1 ? 'Corps de séance' : 'Retour au calme';
+      const st = step(title === 'Retour au calme' ? '10:00' : '', 'Z1'); setStepInt(st, /échauffement/i.test(title) ? 'I2' : title === 'Retour au calme' ? 'I1' : 'I3');
+      s.blocks.push(block(title, 1, [st])); save(); render(); break; }
     case 'bdel': confirmBox('Supprimer ce bloc ?', () => { s.blocks.splice(bi,1); save(); render(); }); break;
     case 'bup': if (bi > 0){ [s.blocks[bi-1], s.blocks[bi]] = [s.blocks[bi], s.blocks[bi-1]]; save(); render(); } break;
     case 'bdown': if (bi < s.blocks.length-1){ [s.blocks[bi+1], s.blocks[bi]] = [s.blocks[bi], s.blocks[bi+1]]; save(); render(); } break;
