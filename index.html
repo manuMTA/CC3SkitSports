@@ -424,6 +424,10 @@ table.it td.na{color:#c3ccd5}
 .licrow{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:.88rem}
 .lictab td,.lictab th{padding:3px 8px;font-size:.82rem}
 .lictab .curcol{background:#eef6fb;font-weight:600}
+.devpane{border-color:#c9a94a;background:#fffdf6}
+.devgrid{display:grid;grid-template-columns:1.3fr 1fr 1fr .8fr auto;gap:8px;align-items:end}
+.devgrid label{font-size:.72rem;color:var(--muted)}
+@media (max-width:760px){.devgrid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -825,11 +829,13 @@ function defaultLibrary(){
 const CFG = window.SUIVITRI_CONFIG || {};
 const sb = (window.supabase && CFG.supabaseUrl) ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey, { auth: { flowType: 'implicit', detectSessionInUrl: true, persistSession: true } }) : null;
 const PAY_LINKS = () => (CFG.paiementStandard || CFG.paiementComplete) ? {standard:CFG.paiementStandard, complete:CFG.paiementComplete} : null;
+const LOGIN_DOMAIN = CFG.loginDomain || 'comptes.suivitri.app';
+const toEmail = id => id.includes('@') ? id : id.toLowerCase() + '@' + LOGIN_DOMAIN;
 const SITE_URL = (CFG.siteUrl || (location.origin + location.pathname)).replace(/index\.html$/, '');
 let snap = {sessions:new Map(), users:new Map(), libS:new Map(), libP:new Map()};
 const J = o => JSON.stringify(o);
 
-const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null});
+const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null, developer:!!r.developer, login:r.login || ''});
 const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null});
 const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id});
 const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan});
@@ -1056,7 +1062,7 @@ function loginView(){
       <div class="field"><label for="pw">Nouveau mot de passe</label><input id="pw" type="password" minlength="8" autocomplete="new-password" required></div>
       <button class="btn primary" style="width:100%;padding:10px">Enregistrer le mot de passe</button>`
     : `
-      <div class="field"><label for="lg">E-mail</label><input id="lg" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="lg">E-mail ou identifiant</label><input id="lg" type="text" autocomplete="username" autocapitalize="none" required></div>
       <div class="field"><label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password" required></div>
       <button class="btn primary" style="width:100%;padding:10px">Se connecter</button>
       <button type="button" class="lk" style="margin-top:8px" data-a="authmode" data-v="reset">Mot de passe oublié ?</button>`;
@@ -1064,7 +1070,7 @@ function loginView(){
     <h1>Suivi<span style="color:var(--accent)">Tri</span></h1>
     <p>Espace coach et adhérents</p>
     ${m === 'newpw' ? '' : `<button type="button" class="sbtn" data-a="stravalogin">Se connecter avec Strava</button>
-    <div class="or">ou avec un e-mail</div>
+    <div class="or">ou avec un e-mail ou un identifiant</div>
     <div class="ltabs"><button type="button" class="${m==='login'||m==='reset'?'on':''}" data-a="authmode" data-v="login">Connexion</button><button type="button" class="${m==='signup'?'on':''}" data-a="authmode" data-v="signup">Créer un compte</button></div>`}
     ${f}
     <div class="err" id="err" style="margin-top:8px">${esc(ui.authErr || '')}</div>
@@ -1201,7 +1207,7 @@ function athleteView(){
     body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices']]) +
       (ui.bsub === 'plans' ? (has('plans') ? libPlansView(aid) : lockBox('plans')) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? libSessionsView(aid) : lockBox('library')));
   } else if (ui.tab === 'param'){
-    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement']]) + (ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid));
+    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement'],['compte','Mon compte']]) + (ui.psub === 'compte' ? (aid === me.id ? pwFormHTML() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le mot de passe se change depuis le compte de la personne.</p></div>') : ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid));
   } else body = weekNav() + weekPage(aid);
   return `${head}
     <div class="tabs">
@@ -2237,25 +2243,56 @@ function coachHome(){
       </button>`; }).join('') || '<p class="ztxt">Aucun athlète validé. Les adhérents créent leur compte sur le site, puis vous les validez dans l\'onglet Comptes.</p>'}</div>`;
 }
 
+// Changement de mot de passe (tout utilisateur connecté, avec ou sans e-mail)
+function pwFormHTML(){
+  return `<div class="pane dense" style="margin-top:8px"><h4>Mon mot de passe</h4>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      ${me.login ? `<span class="ztxt">Identifiant : <b>${esc(me.login)}</b></span>` : ''}
+      <input type="password" id="np1" placeholder="nouveau mot de passe (8 car. min.)" autocomplete="new-password" style="width:220px!important">
+      <input type="password" id="np2" placeholder="confirmer" autocomplete="new-password" style="width:150px!important">
+      <button class="btn sm primary" data-a="chpw">Changer</button></div></div>`;
+}
+// Formulaire réservé au compte développeur : comptes sans e-mail, actifs tout de suite
+function devFormHTML(){
+  if (!me.developer) return '';
+  return `<div class="pane dense devpane" style="margin-top:8px"><h4>Développeur : créer un compte sans e-mail</h4>
+    <div class="devgrid">
+      <div><label>Prénom et nom</label><input id="dv-name"></div>
+      <div><label>Identifiant</label><input id="dv-login" autocapitalize="none" placeholder="ex. julie.m"></div>
+      <div><label>Mot de passe provisoire</label><input id="dv-pw" placeholder="8 caractères min."></div>
+      <div><label>Licence</label><select id="dv-lic">${TIERS.map(t => `<option value="${t}">${LICENSES[t].label}</option>`).join('')}</select></div>
+      <div><button class="btn primary" data-a="devcreate" ${ui.devBusy ? 'disabled' : ''}>${ui.devBusy ? 'Création…' : 'Créer le compte'}</button></div>
+    </div>
+    <p class="ztxt" style="margin:6px 0 0;font-size:.78rem">Le compte est validé immédiatement. La personne se connecte avec son identifiant et peut changer son mot de passe dans Paramétrage → Mon compte. Mot de passe oublié : bouton 🔑 dans la liste.</p>
+  </div>`;
+}
+async function devCall(body){
+  const { data, error } = await sb.functions.invoke('strava', { body });
+  if (error) throw error;
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
 function accountsView(){
   const others = state.users.filter(u => u.id !== me.id).sort((a,b) => (a.approved - b.approved) || a.name.localeCompare(b.name));
   return `<h2 style="margin-top:6px">Comptes</h2>
+  ${devFormHTML()}
   
   <p class="ztxt">Les adhérents créent leur compte eux-mêmes (avec Strava ou un e-mail) : il est actif tout de suite, en licence Basique. Vous pouvez changer la licence de chacun ici, avec une date de fin si besoin.</p>
   <div class="pane dense" style="margin-top:8px"><table class="rep">
     <thead><tr><th>Nom</th><th>Rôle</th><th>Licence</th><th>Strava</th><th>Statut</th><th></th></tr></thead>
     <tbody>${others.map(u => `<tr>
-      <td><b>${esc(u.name)}</b></td><td>${u.role === 'coach' ? 'Coach' : 'Adhérent'}</td><td style="white-space:nowrap">${licSelectHTML(u)}</td>
+      <td><b>${esc(u.name)}</b>${u.login ? `<div class="ztxt" style="font-size:.75rem">identifiant : ${esc(u.login)}</div>` : ''}</td><td>${u.role === 'coach' ? 'Coach' : 'Adhérent'}</td><td style="white-space:nowrap">${licSelectHTML(u)}</td>
       <td>${u.strava ? '<span class="strava">●</span> relié' : '—'}</td>
       <td>${u.role === 'coach' || u.approved ? '<span class="ok">Validé</span>' : '<span class="warn">En attente</span>'}</td>
       <td style="text-align:right">${u.role === 'coach' ? '' : (u.approved
         ? `<button class="btn sm" data-a="unapprove" data-id="${u.id}">Suspendre</button>`
-        : `<button class="btn sm primary" data-a="approve" data-id="${u.id}">Valider</button>`) + ` <button class="btn sm danger" data-a="deluser" data-id="${u.id}">Supprimer</button>`}</td>
+        : `<button class="btn sm primary" data-a="approve" data-id="${u.id}">Valider</button>`) + (me.developer && u.login ? ` <button class="btn sm" title="Nouveau mot de passe" data-a="devpw" data-id="${u.id}">🔑</button>` : '') + ` <button class="btn sm danger" data-a="deluser" data-id="${u.id}">Supprimer</button>`}</td>
     </tr>`).join('') || '<tr><td colspan="6" class="ztxt">Aucun autre compte pour l\'instant.</td></tr>'}</tbody>
   </table></div>
   <div class="pane dense" style="margin-top:8px"><h4>Mon compte</h4>
     ${me.strava ? '<span class="ok">✓ Strava relié</span>' : '<button class="btn sm" data-a="stravalink">Relier mon compte Strava</button>'}
-  </div>`;
+  </div>
+  ${pwFormHTML()}`;
 }
 
 /* ===================== Modales ===================== */
@@ -2322,8 +2359,8 @@ async function authSubmit(mode){
   ui.authErr = ''; ui.authMsg = '';
   try {
     if (mode === 'login'){
-      const { error } = await sb.auth.signInWithPassword({ email:v('lg').trim(), password:v('pw') });
-      if (error) throw new Error(error.message === 'Invalid login credentials' ? 'E-mail ou mot de passe incorrect.' : error.message === 'Email not confirmed' ? 'Confirmez d\'abord votre e-mail (lien reçu à l\'inscription).' : error.message);
+      const { error } = await sb.auth.signInWithPassword({ email:toEmail(v('lg').trim()), password:v('pw') });
+      if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Identifiant ou mot de passe incorrect.' : error.message === 'Email not confirmed' ? 'Confirmez d\'abord votre e-mail (lien reçu à l\'inscription).' : error.message);
       await startSession();
     } else if (mode === 'signup'){
       const { data, error } = await sb.auth.signUp({ email:v('lg').trim(), password:v('pw'), options:{ data:{ name:v('su-name').trim() }, emailRedirectTo:SITE_URL } });
@@ -2484,6 +2521,28 @@ document.addEventListener('click', e => {
       if (!t.blocks.length) t.blocks.push(block('Corps de séance', 1, []));
       t.blocks[t.blocks.length - 1].steps.push(st); save(); toast(`« ${ex.title} » ajouté à la séance`); break; }
     case 'sub': ui[el.dataset.k] = el.dataset.v; render(); break;
+    case 'chpw': {
+      const a1 = document.getElementById('np1').value, a2 = document.getElementById('np2').value;
+      if (a1.length < 8){ toast('8 caractères minimum'); break; }
+      if (a1 !== a2){ toast('Les deux mots de passe sont différents'); break; }
+      sb.auth.updateUser({ password:a1 }).then(({ error }) => { if (error) toast('Échec : ' + error.message); else { toast('Mot de passe modifié'); render(); } });
+      break; }
+    case 'devcreate': {
+      const g = id => document.getElementById(id).value.trim();
+      const body = {action:'createuser', name:g('dv-name'), login:g('dv-login'), password:document.getElementById('dv-pw').value, license:g('dv-lic')};
+      ui.devBusy = true; render();
+      devCall(body).then(async () => { ui.devBusy = false; await loadAll(); render(); toast(`Compte créé : identifiant « ${body.login.toLowerCase()} »`); })
+        .catch(err => { ui.devBusy = false; render(); ['dv-name','dv-login','dv-pw','dv-lic'].forEach(k => { const el = document.getElementById(k); if (el) el.value = k === 'dv-lic' ? body.license : k === 'dv-pw' ? body.password : body[k.slice(3)]; }); toast('Création impossible : ' + (err.message || err)); });
+      break; }
+    case 'devpw': {
+      const u = getUser(el.dataset.id);
+      openModal(`<h3>Nouveau mot de passe pour ${esc(u.name)}</h3><div class="field"><label>Mot de passe provisoire (8 caractères min.)</label><input id="dvp"></div>
+        <div style="text-align:right;margin-top:10px"><button class="btn" data-a="mclose">Annuler</button> <button class="btn primary" data-a="devpw2" data-id="${u.id}">Enregistrer</button></div>`);
+      break; }
+    case 'devpw2': {
+      const pw = document.getElementById('dvp').value;
+      devCall({action:'setpassword', user_id:el.dataset.id, password:pw}).then(() => { closeModal(); toast('Mot de passe modifié : communiquez-le à la personne'); }).catch(err => toast('Échec : ' + (err.message || err)));
+      break; }
     case 'upgrade': {
       const L = PAY_LINKS(), url = L && L[el.dataset.v];
       if (!url){ toast('Paiement en ligne non configuré : contactez votre coach.'); break; }
