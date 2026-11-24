@@ -240,6 +240,13 @@ h2{font-size:1.25rem}
 table.st{border-collapse:collapse;width:100%;min-width:820px}
 table.st th{font-size:.65rem;color:var(--muted);font-weight:600;text-align:left;padding:2px 3px 0;text-transform:uppercase}
 table.st td{padding:1px 2px}
+table.st th.cons{min-width:170px}
+.sinfo{font-size:.76rem;color:var(--ink);line-height:1.6;display:block;max-width:290px}
+.sinfo .nw{white-space:nowrap}
+table.st th:first-child{min-width:150px}
+.sinfo i{font-style:normal;color:#b8c4cf;margin:0 1px}
+.sinfo b{font-weight:600;color:var(--accent)}
+table.st td:has(input[data-k="autre"]) input{width:100%!important;min-width:170px}
 table.st tr td:first-child,table.st tr th:first-child{padding-left:4px}
 .lk{border:0;background:none;color:var(--accent);font-size:.75rem;padding:2px 4px}
 .lk:hover{text-decoration:underline}
@@ -641,6 +648,17 @@ function stepLabelsHTML(st, s, bi, si){
     fc: labCell(i.fc, i.c === 'fc'),
     pace: labCell(i.pace, i.c === 'pct')
   };
+}
+// Repères d'une ligne en une seule phrase, sans répéter le critère saisi
+function stepInfoText(st, s){
+  const i = stepInfo(st, s), it = INT_BY[i.k], v = x => x && x !== '—', parts = [];
+  if (i.c !== 'int') parts.push(`<span class="ilab" style="background:${it ? it.c : '#eee'};${i.k >= 'I6' ? 'color:#fff' : ''}" title="${it ? esc(it.n) : ''}">${esc(i.int)}</span>`);
+  if (s.sport !== 'strength' && i.c !== 'pct' && v(i.pct)) parts.push(`${esc(i.pct.replace(/\s*%$/, ''))} ${PCT_LAB[s.sport]}`);
+  if (i.c !== 'rpe' && v(i.rpe)) parts.push(`RPE ${esc(i.rpe)}`);
+  if (i.c !== 'fc' && v(i.fc)) parts.push(`FC ${esc(i.fc)}${/bpm/.test(i.fc) ? '' : ' bpm'}`);
+  if (s.sport !== 'strength' && v(i.pace)) parts.push(`<b>${esc(i.pace)}</b>`);
+  if (i.missingFc) parts.push('<span class="slab na" title="Renseignez la FC seuil ou la FC max dans le profil">profil ?</span>');
+  return `<span class="sinfo">${parts.map(x => `<span class="nw">${x}</span>`).join(' <i>·</i> ') || '<span class="slab na">—</span>'}</span>`;
 }
 // Valeur de départ quand on change de critère, cohérente avec l'intensité actuelle
 function seedCrit(st, c, sport, u){
@@ -1405,7 +1423,7 @@ function detailHTML(s){
         ${ro ? '' : `<button class="ib" title="Monter" data-a="bup" data-b="${bi}">↑</button><button class="ib" title="Descendre" data-a="bdown" data-b="${bi}">↓</button><button class="ib" title="Dupliquer" data-a="bdup" data-b="${bi}">⧉</button><button class="ib red" title="Supprimer le bloc" data-a="bdel" data-b="${bi}">✕</button>`}
       </div>
       <div class="scroll"><table class="st">
-        <thead><tr><th style="width:178px">Durée / distance</th><th style="width:156px">Critère saisi</th><th style="width:118px">Intensité</th>${s.sport === 'strength' ? '' : `<th style="width:78px">${PCT_LAB[s.sport]}</th>`}<th style="width:40px">RPE</th><th style="width:96px">FC</th>${s.sport === 'strength' ? '' : `<th style="width:118px">${PACE_LAB[s.sport]}</th>`}<th>Consigne</th><th style="width:22px"></th></tr></thead>
+        <thead><tr><th style="width:160px;white-space:nowrap">Durée / distance</th><th style="width:150px">Critère saisi</th><th>Repères</th><th class="cons">Consigne</th><th style="width:22px"></th></tr></thead>
         <tbody>${b.steps.map((st, si) => { const L = stepLabelsHTML(st, s, bi, si), c = critOf(st); return `<tr>
           <td><div class="dur">${s.sport === 'strength' ? '' : `<select class="md" title="Répétition au temps ou à la distance" data-f="step" data-b="${bi}" data-s="${si}" data-k="mode" ${ro}><option value="time" ${st.mode !== 'dist' ? 'selected' : ''}>⏱</option><option value="dist" ${st.mode === 'dist' ? 'selected' : ''}>📏</option></select>`}
             ${st.mode === 'dist' && s.sport !== 'strength'
@@ -1416,11 +1434,7 @@ function detailHTML(s){
             ${c === 'int' ? `<select class="cv" style="width:70px!important" data-f="step" data-b="${bi}" data-s="${si}" data-k="zone" ${ro}>${INTS.map(it=>`<option value="${it.k}" ${st.int===it.k?'selected':''}>${it.k}</option>`).join('')}</select>`
               : c === 'rpe' ? `<select class="cv" data-f="step" data-b="${bi}" data-s="${si}" data-k="cval" ${ro}>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option ${String(st.cval)===String(n)?'selected':''}>${n}</option>`).join('')}</select>`
               : `<input class="cv" inputmode="decimal" data-f="step" data-b="${bi}" data-s="${si}" data-k="cval" value="${esc(st.cval || '')}" placeholder="${c === 'fc' ? 'bpm' : '%'}" ${ro}><span class="cu">${c === 'fc' ? 'bpm' : '%'}</span>`}</div></td>
-          <td id="li-${bi}-${si}">${L.int}</td>
-          ${s.sport === 'strength' ? '' : `<td id="lp-${bi}-${si}">${L.pct}</td>`}
-          <td id="lr-${bi}-${si}">${L.rpe}</td>
-          <td id="lf-${bi}-${si}">${L.fc}</td>
-          ${s.sport === 'strength' ? '' : `<td id="la-${bi}-${si}">${L.pace}</td>`}
+          <td id="lx-${bi}-${si}">${stepInfoText(st, s)}</td>
           <td><div style="display:flex;gap:2px;align-items:center"><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" placeholder="consigne" ${ro}>${exFor(st.autre) ? `<button class="ib" title="Voir l'exercice animé" data-a="exshow" data-id="${exFor(st.autre).id}">🎬</button>` : ''}${ro ? '' : `<button class="ib" title="Choisir un exercice pour cette ligne" data-a="expick0" data-b="${bi}" data-s="${si}">🏋</button>`}</div></td>
           <td>${ro ? '' : `<button class="ib red" title="Supprimer la ligne" data-a="sdel" data-b="${bi}" data-s="${si}">✕</button>`}</td>
         </tr>`; }).join('')}</tbody>
@@ -2366,7 +2380,7 @@ document.addEventListener('input', e => {
     if (k === 'zone' || k === 'crit') return;
     st[k] = el.value;
     if (k === 'cval'){ applyCrit(st, s.sport, ctxUser(s)); const L = stepLabelsHTML(st, s), id = `${el.dataset.b}-${el.dataset.s}`;
-      [['li', L.int], ['lp', L.pct], ['lr', L.rpe], ['lf', L.fc], ['la', L.pace]].forEach(([p, v]) => { const e2 = document.getElementById(`${p}-${id}`); if (e2) e2.innerHTML = v; }); }
+      const e2 = document.getElementById(`lx-${id}`); if (e2) e2.innerHTML = stepInfoText(st, s); }
   }
   else if (f === 'simple'){ const st = s.blocks[0].steps[+el.dataset.i]; if (st) st.dur = secToDur(parseHM(el.value)); }
   else if (f === 'bz'){ s.bilan.zones[el.dataset.z][el.dataset.k] = el.value; s.bilan.edited = true; }
