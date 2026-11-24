@@ -428,6 +428,17 @@ table.it td.na{color:#c3ccd5}
 .devgrid{display:grid;grid-template-columns:1.3fr 1fr 1fr .8fr auto;gap:8px;align-items:end}
 .devgrid label{font-size:.72rem;color:var(--muted)}
 @media (max-width:760px){.devgrid{grid-template-columns:1fr 1fr}}
+.sopts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:6px 0 4px;font-size:.8rem}
+.sopts .seg button{padding:2px 9px;font-size:.76rem}
+.sopts .chk{display:flex!important;align-items:center;gap:5px;margin:0!important;font-size:.8rem!important;color:inherit!important;text-transform:none!important;letter-spacing:0!important;font-weight:400!important}
+.sopts .chk input{width:auto!important;margin:0;padding:0}
+.sopts .chk b{display:inline-flex;align-items:center;gap:3px}
+.c2.opt{border-left-style:dashed;background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(255,255,255,.55) 6px 9px)}
+.c2 .fac{font-size:.62rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.c2.chn{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.c2.chd{border-top-left-radius:0;border-top-right-radius:0}
+.chlink{font-size:.62rem;color:var(--muted);text-align:center;line-height:1;margin:-2px 0;position:relative;z-index:1}
+.facn{color:var(--muted);font-weight:400;font-size:.72em}
 </style>
 </head>
 <body>
@@ -501,10 +512,10 @@ const ui = { view:'home', athleteId:null, sessionId:null, week:mondayOf(todayStr
    CAP : % de la VMA · Vélo : % de la PMA seuil (FTP) · Natation : % de la vitesse au seuil (CSS) · FC : % de la FC seuil */
 const INTS = [
   {k:'I1', n:'Récupération',            z:'Z1', run:[50,60],   bike:[0,55],    swim:[0,80],    hr:[0,75],     c:'#cfeee0'},
-  {k:'I2', n:'Endurance fondamentale',  z:'Z1', run:[60,70],   bike:[56,75],   swim:[80,88],   hr:[75,85],    c:'#9ddcc0'},
-  {k:'I3', n:'Endurance active (tempo)',z:'Z2', run:[70,80],   bike:[76,90],   swim:[88,95],   hr:[85,92],    c:'#f8df9a'},
-  {k:'I4', n:'Seuil',                   z:'Z2', run:[80,88],   bike:[91,105],  swim:[95,102],  hr:[92,100],   c:'#f2c14e'},
-  {k:'I5', n:'PMA / VMA longue',        z:'Z3', run:[88,100],  bike:[106,120], swim:[102,108], hr:[100,106],  c:'#f0a080'},
+  {k:'I2', n:'Endurance fondamentale',  z:'Z1', run:[60,75],   bike:[56,75],   swim:[80,88],   hr:[75,85],    c:'#9ddcc0'},
+  {k:'I3', n:'Endurance active (tempo)',z:'Z2', run:[75,80],   bike:[76,90],   swim:[88,95],   hr:[85,92],    c:'#f8df9a'},
+  {k:'I4', n:'Seuil',                   z:'Z2', run:[80,90],   bike:[91,105],  swim:[95,102],  hr:[92,100],   c:'#f2c14e'},
+  {k:'I5', n:'PMA / VMA longue',        z:'Z3', run:[90,100],  bike:[106,120], swim:[102,108], hr:[100,106],  c:'#f0a080'},
   {k:'I6', n:'VMA courte / anaérobie',  z:'Z3', run:[100,115], bike:[121,150], swim:[108,115], hr:[106,null], c:'#e2654f'},
   {k:'I7', n:'Sprint / force max',      z:'Z3', run:[115,null],bike:[150,null],swim:[115,null],hr:null,       c:'#b83a2a'}
 ];
@@ -837,8 +848,8 @@ const J = o => JSON.stringify(o);
 
 const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null, developer:!!r.developer, login:r.login || ''});
 const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null});
-const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id});
-const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan});
+const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id, optional:!!(r.opts && r.opts.optional), chain:!!(r.opts && r.opts.chain), ord:(r.opts && r.opts.ord != null) ? r.opts.ord : undefined});
+const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan, opts:{optional:!!s.optional, chain:!!s.chain, ord:s.ord ?? null}});
 const libSFrom = r => ({ownerId:r.owner_id, id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom, cat:r.cat || undefined, lvl:r.lvl || undefined});
 const libSTo = t => ({id:t.id, sport:t.sport, title:t.title, descr:t.desc || '', blocks:t.blocks, custom:!!t.custom, cat:t.cat || null, lvl:t.lvl || null});
 const libPFrom = r => ({ownerId:r.owner_id, id:r.id, title:r.title, desc:r.descr, weeks:r.weeks});
@@ -997,7 +1008,7 @@ function setValidated(s, v){
   s.bilan.validated = v;
   s.bilan.validatedAt = v ? new Date().toISOString() : null;
 }
-const sessionsOf = (aid, ws) => state.sessions.filter(s => s.athleteId === aid && s.date >= ws && s.date <= addDays(ws,6)).sort((a,b)=>a.date.localeCompare(b.date));
+const sessionsOf = (aid, ws) => state.sessions.filter(s => s.athleteId === aid && s.date >= ws && s.date <= addDays(ws,6)).sort((a,b)=>a.date.localeCompare(b.date) || byOrd(a,b));
 function rangeTable(aid, start, end, mode){
   const t = {}; for (const z of ZONES){ t[z] = {}; for (const sp of SPORT_KEYS) t[z][sp] = 0; }
   const list = state.sessions.filter(s => s.athleteId === aid && s.date >= start && s.date <= end);
@@ -1266,7 +1277,7 @@ function monthBilanView(aid){
   return `${modeSwitch()}
     <div class="synth">
       ${zoneTableHTML(t)}
-      ${sideHTML([['Total du mois', fmtC(tTotal(t)), true], ['Jours off', off], ['Séances', `${done}/${list.length}`], ['Moy. / semaine', fmtC(tTotal(t) / (parseYmd(end).getDate()/7))]])}
+      ${sideHTML([['Total du mois', fmtC(tTotal(t)), true], ['Jours off', off], ['Séances', seancesTxt(list)], ['Moy. / semaine', fmtC(tTotal(t) / (parseYmd(end).getDate()/7))]])}
     </div>
     <div class="sect">Par semaine</div>
     <div class="side" style="max-width:832px">
@@ -1277,10 +1288,33 @@ function monthBilanView(aid){
     </div>`;
 }
 
+/* ---------- Séance obligatoire / facultative, enchaînements ---------- */
+const dayList = (aid, d) => state.sessions.filter(x => x.athleteId === aid && x.date === d).sort(byOrd);
+function byOrd(a, b){ return (a.ord ?? 1e9) - (b.ord ?? 1e9); }
+const nextInDay = s => { const l = dayList(s.athleteId, s.date), i = l.indexOf(s); return i >= 0 ? l[i + 1] : null; };
+const prevInDay = s => { const l = dayList(s.athleteId, s.date), i = l.indexOf(s); return i > 0 ? l[i - 1] : null; };
+const isChained = s => !!s.chain && !!nextInDay(s);
+function fixOrd(aid, d){ dayList(aid, d).forEach((x, i) => { x.ord = i; }); }
+// « 3/4 + 1 fac. » : seules les séances obligatoires comptent dans le total
+function seancesTxt(list){
+  const ob = list.filter(s => !s.optional), fac = list.filter(s => s.optional);
+  const fd = fac.filter(isDone).length;
+  return `${ob.filter(isDone).length}/${ob.length}${fac.length ? ` <small class="facn">+${fd}/${fac.length} fac.</small>` : ''}`;
+}
+function sessOptsHTML(s, ro){
+  const nx = nextInDay(s), pv = prevInDay(s), sib = dayList(s.athleteId, s.date).length > 1;
+  const chainedFrom = pv && pv.chain;
+  return `<div class="sopts">
+    <div class="seg"><button class="${!s.optional ? 'on' : ''}" data-a="sopt" data-v="0" ${ro}>Obligatoire</button><button class="${s.optional ? 'on' : ''}" data-a="sopt" data-v="1" ${ro}>Facultative</button></div>
+    ${nx ? `<label class="chk"><input type="checkbox" data-o="chain" ${s.chain ? 'checked' : ''} ${ro}> ⛓ Enchaînée avec la suivante : <b style="color:${SPORTS[nx.sport].color}">${icon(nx.sport, 12)} ${esc(nx.title || SPORTS[nx.sport].label)}</b></label>`
+         : `<span class="ztxt">${chainedFrom ? '⛓ Enchaînée après ' + esc(pv.title || SPORTS[pv.sport].label) : 'Ajoutez une autre séance ce jour-là pour créer un enchaînement.'}</span>`}
+    ${sib && !ro ? `<span class="ztxt" style="margin-left:auto">Ordre dans la journée <button class="ib" title="Plus tôt" data-a="ordup">↑</button><button class="ib" title="Plus tard" data-a="orddown">↓</button></span>` : ''}
+  </div>`;
+}
 function chipInner(s){
   const sp = SPORTS[s.sport], done = isDone(s);
   return `${canEdit(s) ? `<span class="vchk ${done?'on':''}" title="${done?'Séance validée — cliquer pour annuler':'Valider la séance réalisée'}" data-a="validate" data-id="${s.id}">✓</span>` : ''}<div class="t" style="color:${sp.color}">${icon(s.sport, 12)}${esc(s.title || sp.label)}</div>
-    <div class="m"><span>${fmtC(sum(plannedZones(s)))}</span>${done ? `<span class="done">✓ ${fmtC(sum(realZones(s)))}</span>` : ''}</div>`;
+    <div class="m"><span>${fmtC(sum(plannedZones(s)))}${s.optional ? ' <span class="fac">facult.</span>' : ''}</span>${done ? `<span class="done">✓ ${fmtC(sum(realZones(s)))}</span>` : ''}</div>`;
 }
 function weekMini(aid){
   const real = weekTable(aid, ui.week, 'realise'), plan = weekTable(aid, ui.week, 'prevu');
@@ -1290,7 +1324,7 @@ function weekMini(aid){
     <div class="kp">
       <div class="seg" style="font-size:.74rem"><button class="${ui.mode==='realise'?'on':''}" data-a="mode" data-v="realise">Réalisé</button><button class="${ui.mode==='prevu'?'on':''}" data-a="mode" data-v="prevu">Prévu</button></div>
       <span>Réalisé<b>${fmtC(tTotal(real.t))}</b></span><span>Prévu<b>${fmtC(tTotal(plan.t))}</b></span>
-      <span>Séances<b>${done}/${plan.list.length}</b></span><span>Jours off<b>${real.off}</b></span>
+      <span>Séances<b>${seancesTxt(plan.list)}</b></span><span>Jours off<b>${real.off}</b></span>
       <div class="sp">${SPORT_KEYS.map(sp=>`<span style="color:${SPORTS[sp].color}">${icon(sp,12)} ${fmtC(spT(real.t,sp))} / ${fmtC(spT(plan.t,sp))}</span>`).join('')}</div>
     </div>`;
 }
@@ -1305,7 +1339,7 @@ function weekPage(aid){
     const d = addDays(ui.week, i), ds = list.filter(s => s.date === d), dd = parseYmd(d);
     cols += `<div class="d2 ${d===today?'today':''}" data-day="${d}">
       <div class="h"><span>${DAYS[i]} ${dd.getDate()}</span><button title="Ajouter une séance" data-a="new" data-d="${d}">+</button></div>
-      <div class="b">${ds.length ? ds.map(s => `<div id="chip-${s.id}" tabindex="0" role="button" ${canEdit(s)?'draggable="true"':''} data-drag="${s.id}" class="c2 ${s.id===ui.sessionId?'sel':''} ${!isDone(s) && s.date < todayStr() ? 'todo' : ''}" style="background:${SPORTS[s.sport].bg};border-left-color:${SPORTS[s.sport].color}" data-a="open" data-id="${s.id}">${chipInner(s)}</div>`).join('') : '<div class="off">Off</div>'}</div>
+      <div class="b">${ds.length ? ds.map(s => `<div id="chip-${s.id}" tabindex="0" role="button" ${canEdit(s)?'draggable="true"':''} data-drag="${s.id}" class="c2 ${s.id===ui.sessionId?'sel':''} ${!s.optional && !isDone(s) && s.date < todayStr() ? 'todo' : ''} ${s.optional ? 'opt' : ''} ${isChained(s) ? 'chn' : ''} ${prevInDay(s) && prevInDay(s).chain ? 'chd' : ''}" style="background:${SPORTS[s.sport].bg};border-left-color:${SPORTS[s.sport].color}" data-a="open" data-id="${s.id}">${chipInner(s)}</div>${isChained(s) ? '<div class="chlink" title="Enchaînement">⛓ enchaîné</div>' : ''}`).join('') : '<div class="off">Off</div>'}</div>
     </div>`;
   }
   const s = ui.sessionId ? getSession(ui.sessionId) : null;
@@ -1320,7 +1354,7 @@ function weekBilanView(aid){
   return `${modeSwitch()}
     <div class="synth">
       ${zoneTableHTML(t)}
-      ${sideHTML([['Total semaine', fmtC(tTotal(t)), true], ['Jours off', off], ['Séances', `${list.filter(isDone).length}/${list.length}`]])}
+      ${sideHTML([['Total semaine', fmtC(tTotal(t)), true], ['Jours off', off], ['Séances', seancesTxt(list)]])}
     </div>`;
 }
 
@@ -1402,6 +1436,7 @@ function detailHTML(s){
         <input type="date" data-f="date" value="${s.date}" ${ro}>
         ${ro ? '' : `<button class="ib" title="Déplacer au jour précédent" data-a="mvday" data-v="-1">◀</button><button class="ib" title="Déplacer au jour suivant" data-a="mvday" data-v="1">▶</button><button class="ib" title="Charger une séance type" data-a="loadtpl">📂</button><button class="ib" title="Dupliquer au lendemain" data-a="dupsess">⧉</button><button class="ib" title="Enregistrer comme séance type" data-a="savetpl">★</button><button class="ib red" title="Supprimer la séance" data-a="delsess">🗑</button>`}
       </div>
+      ${sessOptsHTML(s, ro)}
       <div class="sline" id="summary">${summaryHTML(s)}</div>
       <div class="sgraph" id="sgraph">${sessionGraph(s, 46, true)}</div>
       ${isSimple(s) ? simpleEditorHTML(s, ro) : `${blocks || '<div class="empty">Aucun bloc.</div>'}
@@ -2239,7 +2274,7 @@ function coachHome(){
         <div class="row"><span class="avatar">${esc((a.name||'?')[0])}</span><h3 style="margin:0">${esc(a.name)}</h3></div>
         <div class="minibar">${perSport.map(([sp,v])=>`<div style="width:${(v/rt*100).toFixed(1)}%;background:${SPORTS[sp].color}"></div>`).join('')}</div>
         <div class="ztxt">Réalisé <b style="color:var(--ink)">${fmt(tot(real))}</b> / prévu ${fmt(tot(plan))}</div>
-        <div class="ztxt">Séances réalisées : ${done} / ${plan.list.length} · Jours off : ${real.off}</div>
+        <div class="ztxt">Séances réalisées : ${seancesTxt(plan.list)} · Jours off : ${real.off}</div>
       </button>`; }).join('') || '<p class="ztxt">Aucun athlète validé. Les adhérents créent leur compte sur le site, puis vous les validez dans l\'onglet Comptes.</p>'}</div>`;
 }
 
@@ -2379,6 +2414,11 @@ async function authSubmit(mode){
   } catch(err){ ui.authErr = err.message || String(err); render(); }
 }
 
+document.addEventListener('change', e => {
+  if (e.target.dataset.o !== 'chain' || !ui.sessionId) return;
+  const s = getSession(ui.sessionId); if (!s || !canEdit(s)) return;
+  fixOrd(s.athleteId, s.date); s.chain = e.target.checked; save(); render();
+});
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if (!el || el.disabled) return;
   const a = el.dataset.a, s = ui.sessionId ? getSession(ui.sessionId) : null;
@@ -2441,7 +2481,7 @@ document.addEventListener('click', e => {
     case 'applyplan': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id, p = state.library.plans.find(x => x.id === el.dataset.id);
       const start = mondayOf(document.getElementById('libd-'+p.id).value || nextMonday()); let n = 0;
-      p.weeks.forEach((w, wi) => planItems(w).forEach(it => { state.sessions.push({id:(typeof newId === 'function' ? newId() : uid()), athleteId:aid, date:addDays(start, wi*7 + it.day), sport:it.sport, title:it.title, blocks:cloneBlocks(it.blocks), bilan:emptyBilan()}); n++; }));
+      p.weeks.forEach((w, wi) => planItems(w).forEach((it, ii) => { state.sessions.push({id:(typeof newId === 'function' ? newId() : uid()), athleteId:aid, date:addDays(start, wi*7 + it.day), sport:it.sport, title:it.title, blocks:cloneBlocks(it.blocks), bilan:emptyBilan(), optional:!!it.optional, chain:!!it.chain, ord:ii}); n++; }));
       save(); ui.week = start; ui.tab = 'agenda'; ui.sessionId = null; render(); toast(`Plan appliqué : ${n} séances ajoutées`); break; }
     case 'libdel': { const t = state.library.sessions.find(x => x.id === el.dataset.id);
       confirmBox(`Retirer « ${t.title} » de la bibliothèque ?`, () => { state.library.sessions = state.library.sessions.filter(x => x !== t); save(); render(); }); break; }
@@ -2475,7 +2515,7 @@ document.addEventListener('click', e => {
       if (!v('sp-title').trim()){ document.getElementById('sp-title').focus(); break; }
       const n = +v('sp-n') || 1, weeks = [];
       for (let i = 0; i < n; i++){ const ws = addDays(ui.week, 7*i);
-        weeks.push(sessionsOf(aid, ws).map(x => ({day:(parseYmd(x.date).getDay() + 6) % 7, sport:x.sport, title:x.title, blocks:cloneBlocks(x.blocks)}))); }
+        weeks.push(sessionsOf(aid, ws).map(x => ({day:(parseYmd(x.date).getDay() + 6) % 7, sport:x.sport, title:x.title, blocks:cloneBlocks(x.blocks), optional:!!x.optional, chain:!!x.chain}))); }
       if (!weeks.some(w => w.length)){ toast('Aucune séance sur ces semaines'); break; }
       state.library.plans.push({ownerId:me.id, id:'up-'+uid(), title:v('sp-title').trim(), desc:v('sp-desc').trim(), weeks});
       save(); closeModal(); toast('Plan type enregistré dans la bibliothèque'); break; }
@@ -2521,6 +2561,10 @@ document.addEventListener('click', e => {
       if (!t.blocks.length) t.blocks.push(block('Corps de séance', 1, []));
       t.blocks[t.blocks.length - 1].steps.push(st); save(); toast(`« ${ex.title} » ajouté à la séance`); break; }
     case 'sub': ui[el.dataset.k] = el.dataset.v; render(); break;
+    case 'sopt': if (s && canEdit(s)){ s.optional = el.dataset.v === '1'; save(); render(); } break;
+    case 'ordup': case 'orddown': if (s && canEdit(s)){
+      fixOrd(s.athleteId, s.date); const l = dayList(s.athleteId, s.date), i = l.indexOf(s), j = a === 'ordup' ? i - 1 : i + 1;
+      if (j >= 0 && j < l.length){ const o = l[j].ord; l[j].ord = s.ord; s.ord = o; save(); render(); } } break;
     case 'chpw': {
       const a1 = document.getElementById('np1').value, a2 = document.getElementById('np2').value;
       if (a1.length < 8){ toast('8 caractères minimum'); break; }
@@ -2604,7 +2648,7 @@ function moveSession(s, date, copy){
   if (!copy && s.date === date) return;
   let target = s;
   if (copy){
-    target = JSON.parse(JSON.stringify(s)); target.id = newId(); target.bilan = emptyBilan();
+    target = JSON.parse(JSON.stringify(s)); target.id = newId(); target.bilan = emptyBilan(); delete target.chain; delete target.ord;
     target.blocks.forEach(b => { b.id = uid(); b.steps.forEach(x => x.id = uid()); });
     state.sessions.push(target);
   }
