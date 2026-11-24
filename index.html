@@ -344,6 +344,22 @@ table.stt tfoot td{font-weight:700;background:#f7f9fa}
 .excard .dos{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:6px;background:#e2f4ea;color:var(--run);font-weight:700;font-size:.78rem}
 .excard .acts{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
 @media (max-width:700px){.exgrid{grid-template-columns:1fr}.excard{grid-template-columns:120px 1fr}}
+/* Sous-onglets, presets, fenêtres de saisie */
+.subnav{margin:4px 0 10px}
+.subnav button{padding:6px 14px;font-weight:600}
+.pmx{width:100%;border-collapse:separate;border-spacing:4px;font-size:.8rem}
+.pmx th{font-size:.66rem;text-transform:uppercase;color:var(--muted);text-align:left;padding:2px 4px}
+.pmx td button{width:100%;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 8px;text-align:left;cursor:pointer;font-size:.76rem;line-height:1.35}
+.pmx td button b{display:block;font-size:.82rem}
+.pmx td button:hover{border-color:var(--accent);background:#f4f8fb}
+.pmx td button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.frm .field{margin-bottom:8px}
+.frm .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.expk{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;max-height:360px;overflow:auto}
+.expk button{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px;text-align:left;cursor:pointer}
+.expk button:hover{border-color:var(--accent);background:#f4f8fb}
+.expk svg{width:78px;height:auto;display:block;border-radius:6px}
+.expk b{font-size:.85rem;display:block}
 /* Profil & zones */
 .prof{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prof .pane h4{display:flex;align-items:center;gap:6px}
@@ -794,8 +810,8 @@ const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approve
 const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}});
 const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id});
 const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan});
-const libSFrom = r => ({id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom});
-const libSTo = t => ({id:t.id, sport:t.sport, title:t.title, descr:t.desc || '', blocks:t.blocks, custom:!!t.custom});
+const libSFrom = r => ({id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom, cat:r.cat || undefined, lvl:r.lvl || undefined});
+const libSTo = t => ({id:t.id, sport:t.sport, title:t.title, descr:t.desc || '', blocks:t.blocks, custom:!!t.custom, cat:t.cat || null, lvl:t.lvl || null});
 const libPFrom = r => ({id:r.id, title:r.title, desc:r.descr, weeks:r.weeks});
 const libPTo = p => ({id:p.id, title:p.title, descr:p.desc || '', weeks:p.weeks});
 
@@ -1035,33 +1051,39 @@ function weekNav(){
     <div class="label">${weekLabel(ui.week)}</div>
     <button class="btn sm" data-a="wnext">▶</button>
     <button class="btn sm ghost" data-a="wtoday">Cette semaine</button>
+    ${me && me.role === 'coach' && ui.view === 'athlete' && ui.tab === 'agenda' ? '<button class="btn sm" style="margin-left:auto" data-a="saveplan">★ Enregistrer comme plan type</button>' : ''}
   </div>`;
 }
 
+const TAB_ALIAS = {bilan:'stats', mois:'stats', lib:'biblio', ex:'biblio', strava:'param', profil:'param'};
+function subNav(key, opts){
+  if (!opts.some(o => o[0] === ui[key])) ui[key] = opts[0][0];
+  return `<div class="seg subnav">${opts.map(([k, l]) => `<button class="${ui[key] === k ? 'on' : ''}" data-a="sub" data-k="${key}" data-v="${k}">${l}</button>`).join('')}</div>`;
+}
 function athleteView(){
   const aid = me.role === 'coach' ? ui.athleteId : me.id;
   const a = getUser(aid);
+  if (TAB_ALIAS[ui.tab]){ const old = ui.tab; ui.tab = TAB_ALIAS[old];
+    if (old === 'mois') ui.ssub = 'mois'; if (old === 'ex') ui.bsub = 'exercices'; if (old === 'lib') ui.bsub = 'seances'; if (old === 'strava') ui.psub = 'strava'; }
+  if (!['agenda','stats','biblio','param'].includes(ui.tab)) ui.tab = 'agenda';
   const head = me.role === 'coach'
     ? `<div class="crumb"><button class="btn sm" data-a="home">← Athlètes</button><b>${esc(a.name)}</b></div>`
     : '';
+  let body;
+  if (ui.tab === 'stats'){
+    body = subNav('ssub', [['evol','Évolution'],['mois','Bilan du mois']]) + (ui.ssub === 'mois' ? monthNav() + monthBilanView(aid) : statsView(aid));
+  } else if (ui.tab === 'biblio'){
+    body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices']]) +
+      (ui.bsub === 'plans' ? libPlansView(aid) : ui.bsub === 'exercices' ? exercisesView() : libSessionsView(aid));
+  } else if (ui.tab === 'param'){
+    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava']]) + (ui.psub === 'strava' ? stravaView(aid) : profileView(aid));
+  } else body = weekNav() + weekPage(aid);
   return `${head}
     <div class="tabs">
-      <button class="tab ${ui.tab==='agenda'?'on':''}" data-a="tab" data-v="agenda">Semaine</button>
-      <button class="tab ${ui.tab==='bilan'?'on':''}" data-a="tab" data-v="bilan">Bilan semaine</button>
-      <button class="tab ${ui.tab==='mois'?'on':''}" data-a="tab" data-v="mois">Bilan mois</button>
-      <button class="tab ${ui.tab==='stats'?'on':''}" data-a="tab" data-v="stats">Statistiques</button>
-      <button class="tab ${ui.tab==='ex'?'on':''}" data-a="tab" data-v="ex">Exercices</button>
-      <button class="tab ${ui.tab==='lib'?'on':''}" data-a="tab" data-v="lib">Plans &amp; séances types</button>
-      <button class="tab ${ui.tab==='strava'?'on':''}" data-a="tab" data-v="strava"><span class="strava">●</span> Strava</button>
-      <button class="tab ${ui.tab==='profil'?'on':''}" data-a="tab" data-v="profil">Profil &amp; zones</button>
+      ${[['agenda','Semaine'],['stats','Statistiques'],['biblio','Bibliothèque'],['param','Paramétrage']].map(([k, l]) =>
+        `<button class="tab ${ui.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}
     </div>
-    ${ui.tab === 'mois' ? monthNav() + monthBilanView(aid)
-      : ui.tab === 'lib' ? libraryView(aid)
-      : ui.tab === 'ex' ? exercisesView()
-      : ui.tab === 'stats' ? statsView(aid)
-      : ui.tab === 'strava' ? stravaView(aid)
-      : ui.tab === 'profil' ? profileView(aid)
-      : weekNav() + (ui.tab === 'agenda' ? weekPage(aid) : weekBilanView(aid))}`;
+    ${body}`;
 }
 
 function monthNav(){
@@ -1234,11 +1256,11 @@ function detailHTML(s){
           <td id="lr-${bi}-${si}">${L.rpe}</td>
           <td id="lf-${bi}-${si}">${L.fc}</td>
           ${s.sport === 'strength' ? '' : `<td id="la-${bi}-${si}">${L.pace}</td>`}
-          <td><div style="display:flex;gap:2px;align-items:center"><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" placeholder="consigne" ${ro}>${exFor(st.autre) ? `<button class="ib" title="Voir l'exercice animé" data-a="exshow" data-id="${exFor(st.autre).id}">🎬</button>` : ''}</div></td>
+          <td><div style="display:flex;gap:2px;align-items:center"><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" placeholder="consigne" ${ro}>${exFor(st.autre) ? `<button class="ib" title="Voir l'exercice animé" data-a="exshow" data-id="${exFor(st.autre).id}">🎬</button>` : ''}${ro ? '' : `<button class="ib" title="Choisir un exercice pour cette ligne" data-a="expick0" data-b="${bi}" data-s="${si}">🏋</button>`}</div></td>
           <td>${ro ? '' : `<button class="ib red" title="Supprimer la ligne" data-a="sdel" data-b="${bi}" data-s="${si}">✕</button>`}</td>
         </tr>`; }).join('')}</tbody>
       </table></div>
-      ${ro ? '' : `<button class="lk" data-a="sadd" data-b="${bi}">+ ligne</button>`}
+      ${ro ? '' : `<button class="lk" data-a="sadd" data-b="${bi}">+ ligne</button><button class="lk" data-a="expick0" data-b="${bi}">+ exercice</button>`}
     </div>`).join('');
   const bl = s.bilan;
   return `<div class="detail dense">
@@ -1622,11 +1644,11 @@ function profileView(aid){
 /* ===================== Générateur de plans ===================== */
 const GEN_OBJ = {
   run: [['10k','10 km'],['semi','Semi-marathon'],['marathon','Marathon']],
-  tri: [['sprint','Triathlon sprint'],['olympique','Triathlon olympique (M)'],['half','Half / 70.3']]
+  tri: [['sprint','Triathlon S (sprint)'],['olympique','Triathlon M (olympique)'],['half','Triathlon L (half, 70.3)'],['xxl','Triathlon XXL (Ironman)']]
 };
 const GEN_BASE = { // minutes à charge 1
   '10k':      {ef:40, long:60},  'semi':{ef:45, long:80}, 'marathon':{ef:50, long:100},
-  'sprint':   {ef:35, long:50, bike:75, swim:40}, 'olympique':{ef:40, long:65, bike:105, swim:50}, 'half':{ef:45, long:85, bike:165, swim:60}
+  'sprint':   {ef:35, long:50, bike:75, swim:40}, 'olympique':{ef:40, long:65, bike:105, swim:50}, 'half':{ef:45, long:85, bike:165, swim:60}, 'xxl':{ef:50, long:110, bike:270, swim:75}
 };
 const GEN_DAYS = {
   run: {3:[[1,'rq'],[3,'ref'],[6,'rl']], 4:[[1,'rq'],[2,'ref'],[4,'rt'],[6,'rl']], 5:[[1,'rq'],[2,'ref'],[3,'st'],[4,'rt'],[6,'rl']],
@@ -1634,10 +1656,11 @@ const GEN_DAYS = {
   tri: {3:[[1,'se'],[3,'rq'],[5,'bl']], 4:[[1,'se'],[2,'rq'],[5,'bl'],[6,'rl']], 5:[[1,'se'],[2,'rq'],[3,'bq'],[5,'bl'],[6,'rl']],
         6:[[0,'sq'],[1,'rq'],[2,'se'],[3,'bq'],[5,'bl'],[6,'rl']], 7:[[0,'sq'],[1,'rq'],[2,'se'],[3,'bq'],[4,'st'],[5,'bl'],[6,'rl']]}
 };
-const LEVELS = [['deb','Débutant',0.8],['int','Intermédiaire',1],['conf','Confirmé',1.2]];
+const LEVELS = [['deb','Débutant',0.75],['int1','Intermédiaire 1',0.9],['int2','Intermédiaire 2',1.05],['conf','Confirmé',1.2]];
 const PHASES = {base:['Foncier','#2f9461'], build:['Développement','#d9822b'], spec:['Spécifique','#c0392b'], rec:['Récupération','#7f8c8d'], taper:['Affûtage','#1f7fbf']};
 function minStr(min){ min = Math.max(5, Math.round(min/5)*5); return min >= 60 ? Math.floor(min/60) + ':' + String(min%60).padStart(2,'0') + ':00' : min + ':00'; }
 const S = (dur, int, extra={}) => { const st = step(dur, INT_BY[int].z, extra); st.int = int; return st; };
+const CAP_MIN = (m, cap) => Math.min(m, cap);
 const R = (x, min=2, max=40) => Math.max(min, Math.min(max, Math.round(x)));
 function genSession(role, phase, f, obj){
   const B = GEN_BASE[obj], tri = !!B.bike;
@@ -1646,8 +1669,8 @@ function genSession(role, phase, f, obj){
   switch (role){
     case 'ref': return ['run', 'Footing endurance', [block('Footing', 1, [S(minStr(B.ef*f), 'I2')])]];
     case 'rl': {
-      const blocks = [block('Sortie longue', 1, [S(minStr(B.long*f*((phase==='build'||phase==='spec') && !tri && obj!=='10k' ? 0.75 : 1)), 'I2')])];
-      if ((phase==='build'||phase==='spec') && !tri && obj!=='10k') blocks.push(block('Fin à allure spécifique', 1, [S(minStr(B.long*f*0.25), obj==='marathon'?'I3':'I4')]));
+      const blocks = [block('Sortie longue', 1, [S(minStr(CAP_MIN(B.long*f, 180)*((phase==='build'||phase==='spec') && !tri && obj!=='10k' ? 0.75 : 1)), 'I2')])];
+      if ((phase==='build'||phase==='spec') && !tri && obj!=='10k') blocks.push(block('Fin à allure spécifique', 1, [S(minStr(CAP_MIN(B.long*f, 180)*0.25), obj==='marathon'?'I3':'I4')]));
       return ['run', 'Sortie longue', blocks]; }
     case 'rt': return ['run', 'Endurance active', [wu(), block('Tempo', R(2*f,2,4), [S('12:00','I3'), S('3:00','I2',{autre:'récup'})]), cd()]];
     case 'rq': {
@@ -1660,7 +1683,7 @@ function genSession(role, phase, f, obj){
       }[phase][tri ? 'tri' : obj];
       return ['run', q[0], [wu(), block(q[0], q[1], [S(q[2], q[3]), S(q[4], 'I1', {autre:'récup'})]), cd()]]; }
     case 'bl': {
-      const blocks = [block('Endurance', 1, [S(minStr(B.bike*f*(phase==='build'?0.7:1)), 'I2', {taux:'85-95 rpm'})])];
+      const blocks = [block('Endurance', 1, [S(minStr(CAP_MIN(B.bike*f, 360)*(phase==='build'?0.7:1)), 'I2', {taux:'85-95 rpm'})])];
       if (phase === 'build') blocks.push(block('Blocs tempo', R(3*f,2,4), [S('10:00','I3'), S('5:00','I2')]));
       return ['bike', 'Sortie longue vélo', blocks]; }
     case 'bq': {
@@ -1696,7 +1719,8 @@ function generatePlan(g){
   return weeks;
 }
 function genDefaults(){
-  if (!ui.gen) ui.gen = {type:'run', obj:'10k', level:'int', weeks:8, per:4, start:nextMonday()};
+  if (!ui.gen) ui.gen = {type:'run', obj:'10k', level:'int1', weeks:8, per:4, start:nextMonday()};
+  if (!LEVELS.some(l => l[0] === ui.gen.level)) ui.gen.level = 'int1';
   if (!GEN_OBJ[ui.gen.type].some(o => o[0] === ui.gen.obj)) ui.gen.obj = GEN_OBJ[ui.gen.type][0][0];
   return ui.gen;
 }
@@ -1775,35 +1799,57 @@ document.addEventListener('change', e => {
   else { ui.lf[el.dataset.k] = el.value; render(); }
 });
 
-function libraryView(aid){
-  const lib = state.library;
+// Éléments d'une semaine de plan : référence à une séance type [jour, id] ou séance enregistrée {day, sport, title, blocks}
+function planItems(w){
+  return (w || []).map(it => {
+    if (Array.isArray(it)){ const t = state.library.sessions.find(x => x.id === it[1]); return t ? {day:it[0], sport:t.sport, title:t.title.replace(/^[^—]+—\s*/, ''), blocks:t.blocks} : null; }
+    return it;
+  }).filter(Boolean);
+}
+const isUserPlan = p => String(p.id).startsWith('up-');
+const TRI_PRESETS = {
+  olympique: {label:'M — olympique', d:'1,5 km · 40 km · 10 km', weeks:{deb:12, int1:12, int2:14, conf:16}, per:{deb:5, int1:5, int2:6, conf:6}},
+  half:      {label:'L — half / 70.3', d:'1,9 km · 90 km · 21 km', weeks:{deb:16, int1:18, int2:20, conf:20}, per:{deb:6, int1:6, int2:7, conf:7}},
+  xxl:       {label:'XXL — Ironman', d:'3,8 km · 180 km · 42 km', weeks:{deb:26, int1:24, int2:24, conf:24}, per:{deb:6, int1:7, int2:7, conf:7}}
+};
+function libPlansView(aid){
+  const g = genDefaults();
+  const matrix = `<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
+    ${Object.entries(TRI_PRESETS).map(([obj, P]) => `<tr><th style="white-space:nowrap">${P.label}<div style="text-transform:none;font-weight:400">${P.d}</div></th>${LEVELS.map(([lv]) => {
+      const on = g.type === 'tri' && g.obj === obj && g.level === lv && +g.weeks === P.weeks[lv] && +g.per === P.per[lv];
+      return `<td><button class="${on ? 'on' : ''}" data-a="preset" data-o="${obj}" data-l="${lv}"><b>${P.weeks[lv]} semaines</b>${P.per[lv]} séances / sem.</button></td>`; }).join('')}</tr>`).join('')}
+  </tbody></table>`;
+  const plans = state.library.plans.map(p => {
+    const items = planItems(p.weeks[0]), n = p.weeks.length ? Math.round(p.weeks.reduce((a, w) => a + planItems(w).length, 0) / p.weeks.length) : 0;
+    const dots = [0,1,2,3,4,5,6].map(d => { const it = items.find(x => x.day === d); return `<span title="${DAYS[d]}${it ? ' : ' + esc(it.title) : ''}" style="${it ? 'background:' + SPORTS[it.sport].color : ''}"></span>`; }).join('');
+    return `<div class="pcard"><b>${esc(p.title)}</b>${isUserPlan(p) ? '<span class="tag">perso</span>' : ''}
+      <div class="d">${p.weeks.length} sem. · ~${n} séances/sem.${p.desc ? ' — ' + esc(p.desc) : ''}</div>
+      <div class="dots">${dots}</div>
+      <div class="act dense"><span class="ztxt">Début</span><input type="date" id="libd-${p.id}" value="${nextMonday()}"><button class="btn sm primary" data-a="applyplan" data-id="${p.id}">Appliquer</button>
+        ${me.role === 'coach' && isUserPlan(p) ? `<button class="ib red" title="Supprimer ce plan" data-a="plandel" data-id="${p.id}">✕</button>` : ''}</div>
+    </div>`; }).join('');
+  return `<div class="sect" style="margin-top:4px">Préparations triathlon M · L · XXL — choisissez le format et le niveau</div>
+    ${matrix}
+    <div class="sect">Générateur de plan sur mesure (CAP ou triathlon)</div>
+    ${generatorHTML()}
+    <div class="sect">Plans enregistrés</div>
+    <div class="pcards">${plans || '<div class="empty">Aucun plan.</div>'}</div>
+    ${me.role === 'coach' ? '<div class="hint">Pour créer un plan type à partir de l\'agenda d\'un athlète : onglet Semaine → « ★ Enregistrer comme plan type ».</div>' : ''}`;
+}
+function libSessionsView(aid){
   ui.lf = ui.lf || {sport:'all', cat:'all', lvl:'all', dur:'all', q:''};
   const tpls = filterTpls(ui.lf);
-  const tplById = id => lib.sessions.find(t => t.id === id);
-  const plans = lib.plans.map(p => {
-    const w1 = (p.weeks && p.weeks[0]) || [], n = p.weeks && p.weeks.length ? Math.round(p.weeks.reduce((a,w)=>a+w.length,0) / p.weeks.length) : 0;
-    const dots = [0,1,2,3,4,5,6].map(d => { const it = w1.find(x => x[0] === d), t = it && tplById(it[1]); return `<span title="${DAYS[d]}${t?' : '+esc(t.title):''}" style="${t?'background:'+SPORTS[t.sport].color:''}"></span>`; }).join('');
-    return `<div class="pcard"><b>${esc(p.title)}</b>
-      <div class="d">${p.weeks.length} sem. · ~${n} séances/sem. — ${esc(p.desc)}</div>
-      <div class="dots">${dots}</div>
-      <div class="act dense"><span class="ztxt">Début</span><input type="date" id="libd-${p.id}" value="${nextMonday()}"><button class="btn sm primary" data-a="applyplan" data-id="${p.id}">Appliquer</button></div>
-    </div>`; }).join('');
   const rows = tpls.map(t => {
-    const z = plannedZones(t), open = ui.libOpen === t.id;
+    const open = ui.libOpen === t.id;
     return `<div class="lrow"><div class="c" style="background:${SPORTS[t.sport].color}"></div>
       <div><div class="tt"><span style="color:${SPORTS[t.sport].color}">${icon(t.sport, 13)}</span> ${esc(t.title)}${tplTags(t)}</div><div class="ds">${esc(t.desc||'')}</div></div>
       <span class="du2" style="font-weight:700;text-align:right">${fmtC(tplDur(t))}</span><div class="lgraph">${sessionGraph(t, 20)}</div>
       <div class="act dense"><button class="ib" data-a="libopen" data-id="${t.id}" title="Détail">${open?'▲':'▼'}</button><input type="date" id="libd-${t.id}" value="${todayStr()}"><button class="btn sm" data-a="addtpl" data-id="${t.id}">Ajouter</button>${me.role==='coach' && !t.builtin ?`<button class="ib red" title="Retirer de la bibliothèque" data-a="libdel" data-id="${t.id}">✕</button>`:''}</div>
       ${open ? `<div class="prev">${tplPreview(t)}</div>` : ''}
     </div>`; }).join('');
-  return `<div class="sect" style="margin-top:4px">Générer un plan sur mesure</div>
-    ${generatorHTML()}
-    <div class="sect">Plans prêts à l'emploi</div>
-    <div class="pcards">${plans}</div>
-    <div class="sect">Séances types</div>
-    ${filtersHTML(ui.lf, 'lib', tpls.length)}
+  return `${filtersHTML(ui.lf, 'lib', tpls.length)}
     ${rows || '<div class="empty">Aucune séance type ne correspond à ces filtres.</div>'}
-    ${me.role==='coach' ? '<div class="hint">Astuce coach : le bouton ★ d\'une séance l\'ajoute à cette bibliothèque.</div>' : ''}`;
+    ${me.role==='coach' ? '<div class="hint">Pour ajouter une séance à cette bibliothèque : ouvrez-la dans l\'onglet Semaine, puis bouton ★ (titre, type, niveau).</div>' : ''}`;
 }
 
 /* ===================== Strava ===================== */
@@ -2177,15 +2223,73 @@ document.addEventListener('click', e => {
     case 'applyplan': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id, p = state.library.plans.find(x => x.id === el.dataset.id);
       const start = mondayOf(document.getElementById('libd-'+p.id).value || nextMonday()); let n = 0;
-      p.weeks.forEach((w, wi) => w.forEach(([d, tid]) => { const t = state.library.sessions.find(x => x.id === tid); if (t){ addFromTemplate(aid, t, addDays(start, wi*7 + d)); n++; } }));
+      p.weeks.forEach((w, wi) => planItems(w).forEach(it => { state.sessions.push({id:(typeof newId === 'function' ? newId() : uid()), athleteId:aid, date:addDays(start, wi*7 + it.day), sport:it.sport, title:it.title, blocks:cloneBlocks(it.blocks), bilan:emptyBilan()}); n++; }));
       save(); ui.week = start; ui.tab = 'agenda'; ui.sessionId = null; render(); toast(`Plan appliqué : ${n} séances ajoutées`); break; }
     case 'libdel': { const t = state.library.sessions.find(x => x.id === el.dataset.id);
       confirmBox(`Retirer « ${t.title} » de la bibliothèque ?`, () => { state.library.sessions = state.library.sessions.filter(x => x !== t); save(); render(); }); break; }
-    case 'savetpl': state.library.sessions.push({id:'t-'+uid(), sport:s.sport, title:SPORTS[s.sport].label + ' — ' + (s.title || 'Séance'), desc:'Séance enregistrée par le coach', blocks:cloneBlocks(s.blocks), custom:true}); save(); toast('Ajoutée aux séances types'); break;
+    case 'savetpl': {
+      const cat0 = tplCat({sport:s.sport, blocks:s.blocks});
+      openModal(`<h3>Enregistrer comme séance type</h3><div class="frm dense">
+        <div class="field"><label>Titre</label><input id="st-title" value="${esc(s.title || SPORTS[s.sport].label)}"></div>
+        <div class="two"><div class="field"><label>Type</label><select id="st-cat">${TPL_CATS.map(([k,l]) => `<option value="${k}" ${k===cat0?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="field"><label>Niveau</label><select id="st-lvl"><option value="all">Tous niveaux</option>${TPL_LVLS.map(([k,l]) => `<option value="${k}">${l}</option>`).join('')}</select></div></div>
+        <div class="field"><label>Description (facultatif)</label><input id="st-desc" placeholder="objectif, consignes…"></div>
+        <div class="ztxt">Sport : ${SPORTS[s.sport].label} · durée ${fmtC(sum(plannedZones(s)))}</div></div>
+        <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="mclose">Annuler</button><button class="btn primary" data-a="savetpl2">Enregistrer</button></div>`);
+      break; }
+    case 'savetpl2': {
+      const v = id => (document.getElementById(id) || {}).value || '';
+      if (!v('st-title').trim()){ document.getElementById('st-title').focus(); break; }
+      state.library.sessions.push({id:'t-'+uid(), sport:s.sport, cat:v('st-cat'), lvl:v('st-lvl'), title:v('st-title').trim(), desc:v('st-desc').trim(), blocks:cloneBlocks(s.blocks), custom:true});
+      save(); closeModal(); toast('Séance type enregistrée dans la bibliothèque'); break; }
+    case 'saveplan': {
+      const aid = me.role === 'coach' ? ui.athleteId : me.id;
+      const cnt = k => Array.from({length:k}, (_, i) => sessionsOf(aid, addDays(ui.week, 7*i)).length).reduce((a, b) => a + b, 0);
+      openModal(`<h3>Enregistrer comme plan type</h3><div class="frm dense">
+        <div class="field"><label>Titre du plan</label><input id="sp-title" placeholder="ex. Bloc foncier hiver"></div>
+        <div class="two"><div class="field"><label>Semaines à partir du ${longDate(ui.week)}</label><select id="sp-n">${[1,2,3,4,5,6,8,10,12].map(k => `<option value="${k}">${k} semaine${k>1?'s':''} (${cnt(k)} séances)</option>`).join('')}</select></div>
+        <div class="field"><label>Description (facultatif)</label><input id="sp-desc"></div></div>
+        <div class="ztxt">Les séances sont copiées avec leur contenu (blocs, intensités, consignes) ; les bilans ne sont pas repris.</div></div>
+        <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="mclose">Annuler</button><button class="btn primary" data-a="saveplan2">Enregistrer</button></div>`);
+      break; }
+    case 'saveplan2': {
+      const aid = me.role === 'coach' ? ui.athleteId : me.id, v = id => (document.getElementById(id) || {}).value || '';
+      if (!v('sp-title').trim()){ document.getElementById('sp-title').focus(); break; }
+      const n = +v('sp-n') || 1, weeks = [];
+      for (let i = 0; i < n; i++){ const ws = addDays(ui.week, 7*i);
+        weeks.push(sessionsOf(aid, ws).map(x => ({day:(parseYmd(x.date).getDay() + 6) % 7, sport:x.sport, title:x.title, blocks:cloneBlocks(x.blocks)}))); }
+      if (!weeks.some(w => w.length)){ toast('Aucune séance sur ces semaines'); break; }
+      state.library.plans.push({id:'up-'+uid(), title:v('sp-title').trim(), desc:v('sp-desc').trim(), weeks});
+      save(); closeModal(); toast('Plan type enregistré dans la bibliothèque'); break; }
+    case 'plandel': { const pl = state.library.plans.find(x => x.id === el.dataset.id);
+      confirmBox(`Supprimer le plan « ${pl.title} » ?`, () => { state.library.plans = state.library.plans.filter(x => x !== pl); save(); render(); }); break; }
+    case 'preset': {
+      const g = genDefaults(), P = TRI_PRESETS[el.dataset.o], lv = el.dataset.l;
+      Object.assign(g, {type:'tri', obj:el.dataset.o, level:lv, weeks:P.weeks[lv], per:P.per[lv]});
+      render(); const gen = document.querySelector('.gen'); if (gen) gen.scrollIntoView({behavior:'smooth', block:'start'});
+      toast(`${P.label} · ${LEVELS.find(l => l[0] === lv)[1]} : réglez la date de début puis « Appliquer »`); break; }
     case 'stravasync': stravaSync(); break;
     case 'statn': ui.statN = +el.dataset.v; render(); break;
     case 'statprev': ui.statEnd = addDays(ui.statEnd || mondayOf(todayStr()), -7); render(); break;
     case 'statnext': ui.statEnd = addDays(ui.statEnd || mondayOf(todayStr()), 7); render(); break;
+    case 'expick0': {
+      ui.exTarget = {bi:+el.dataset.b, si: el.dataset.s === undefined ? null : +el.dataset.s};
+      const list = EXERCISES.slice().sort((x, y) => (y.sport === s.sport) - (x.sport === s.sport));
+      openModal(`<h3>Choisir un exercice</h3><div class="expk">${list.map(e => `<button data-a="expick" data-id="${e.id}">${e.svg()}<span><b>${esc(e.title)}</b><span class="ztxt">${esc(e.cat)} · ${SPORTS[e.sport].label}</span><br><span class="ztxt">${esc(e.dose)}</span></span></button>`).join('')}</div>
+        <div class="row" style="justify-content:space-between;margin-top:10px"><span class="ztxt">Catalogue d'exercices en construction.</span><button class="btn" data-a="mclose">Annuler</button></div>`, true);
+      break; }
+    case 'expick': {
+      const ex = EX_BY[el.dataset.id], tg = ui.exTarget; if (!ex || !tg || !s) break;
+      const b = s.blocks[tg.bi]; if (!b) break;
+      if (tg.si === null){
+        const st = step(ex.line.dur || '', 'Z1', {autre: ex.title}); setStepInt(st, ex.line.int);
+        if (ex.line.dist){ st.mode = 'dist'; st.dist = ex.line.dist; st.unit = ex.line.unit; }
+        b.steps.push(st);
+      } else {
+        const st = b.steps[tg.si]; st.autre = ex.title;
+        if (!stepSec(st, s.sport, ctxUser(s))){ if (ex.line.dist){ st.mode = 'dist'; st.dist = ex.line.dist; st.unit = ex.line.unit; } else st.dur = ex.line.dur; }
+      }
+      save(); closeModal(); render(); toast(`« ${ex.title} » ajouté`); break; }
     case 'exsport': ui.xf.sport = el.dataset.v; render(); break;
     case 'expause': { const svgs = el.closest('.exanim').querySelectorAll('svg'), paused = svgs[0].animationsPaused();
       svgs.forEach(s => paused ? s.unpauseAnimations() : s.pauseAnimations()); el.textContent = paused ? '❚❚' : '▶'; break; }
@@ -2198,6 +2302,7 @@ document.addEventListener('click', e => {
       if (ex.line.dist){ st.mode = 'dist'; st.dist = ex.line.dist; st.unit = ex.line.unit; }
       if (!t.blocks.length) t.blocks.push(block('Corps de séance', 1, []));
       t.blocks[t.blocks.length - 1].steps.push(st); save(); toast(`« ${ex.title} » ajouté à la séance`); break; }
+    case 'sub': ui[el.dataset.k] = el.dataset.v; render(); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
     case 'genapply': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id, g = genDefaults(), plan = generatePlan(g), start = mondayOf(g.start || nextMonday());
