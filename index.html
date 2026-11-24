@@ -304,6 +304,46 @@ table.bz tfoot td{font-size:.8rem;font-weight:700;padding:3px 2px}
 .slab.na{color:#c3ccd5}
 .slab.hl{font-weight:700;color:var(--accent)}
 .ilab{display:inline-block;padding:1px 6px;border-radius:5px;font-weight:700;font-size:.72rem;color:#1d2a36;white-space:nowrap}
+/* Filtres de la bibliothèque */
+.lfilt{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:.8rem}
+.lfilt select,.lfilt input{width:auto!important;font-size:.78rem!important;padding:3px 6px!important;border:1px solid var(--line);border-radius:6px;background:#fff}
+.lfilt input[type=search]{min-width:170px}
+.lfilt .cnt{color:var(--muted);font-size:.75rem;margin-left:auto}
+.lfilt .filt{margin:0}
+.lfilt .filt button{display:inline-flex;align-items:center;gap:4px}
+.tag{display:inline-block;padding:0 5px;border-radius:4px;background:#eef2f5;color:var(--muted);font-size:.66rem;font-weight:600;margin-left:4px;vertical-align:1px}
+/* Statistiques */
+.chart{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px 6px;position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.76rem;color:var(--ink);margin-bottom:6px}
+.chart .lg span{display:inline-flex;align-items:center;gap:5px}
+.chart .lg i{display:inline-block;width:11px;height:11px;border-radius:3px}
+.chart .lg u{display:inline-block;width:16px;height:0;border-top:2px dashed;position:relative;text-decoration:none}
+.chart .lg u:after{content:'';position:absolute;left:4px;top:-5px;width:8px;height:8px;border-radius:50%;background:currentColor;border:2px solid #fff;box-sizing:border-box}
+.chart .lg .sep{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.4px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:7px;padding:6px 9px;font-size:.74rem;line-height:1.5;white-space:nowrap;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.18);display:none}
+.tip b{font-weight:700}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+table.stt{border-collapse:collapse;width:100%;font-size:.76rem;background:#fff}
+table.stt th,table.stt td{padding:4px 7px;border-bottom:1px solid #eef2f5;text-align:right;white-space:nowrap}
+table.stt th{font-size:.64rem;text-transform:uppercase;color:var(--muted);font-weight:700;background:#f7f9fa}
+table.stt td:first-child,table.stt th:first-child{text-align:left}
+table.stt tr.cur td{background:#f4f8fb}
+table.stt tfoot td{font-weight:700;background:#f7f9fa}
+/* Exercices illustrés */
+.exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:10px}
+.excard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:grid;grid-template-columns:180px minmax(0,1fr);gap:14px}
+.exanim{position:relative;align-self:start}
+.exanim svg{display:block;width:100%;height:auto;border-radius:12px}
+.exanim .pp{position:absolute;right:5px;top:5px;border:0;border-radius:50%;width:22px;height:22px;background:rgba(22,32,43,.45);color:#fff;font-size:.6rem;cursor:pointer;line-height:22px;padding:0}
+.excard h3{margin:0 0 3px;font-size:1.25rem;display:flex;align-items:center;gap:6px}
+.excard .d{font-size:.82rem;color:var(--ink);line-height:1.45;margin:4px 0 6px}
+.excard h5{margin:8px 0 2px;font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.excard ul{margin:0;padding-left:16px;font-size:.78rem;line-height:1.5}
+.excard ul.ko li::marker{content:'✕  ';color:#b3261e}
+.excard .dos{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:6px;background:#e2f4ea;color:var(--run);font-weight:700;font-size:.78rem}
+.excard .acts{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+@media (max-width:700px){.exgrid{grid-template-columns:1fr}.excard{grid-template-columns:120px 1fr}}
 /* Profil & zones */
 .prof{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prof .pane h4{display:flex;align-items:center;gap:6px}
@@ -596,48 +636,136 @@ function addLibraryInts(list){
   return changed;
 }
 
+const TPL_CATS = [['endurance','Endurance'],['recup','Récupération'],['long','Sortie longue'],['technique','Technique / vélocité'],['tempo','Tempo'],['seuil','Seuil'],['vma','VMA / PMA / vitesse'],['cotes','Côtes / force'],['specifique','Allure spécifique'],['renfo','Renforcement'],['mobilite','Mobilité / gainage']];
+const TPL_LVLS = [['deb','Débutant'],['int','Intermédiaire'],['conf','Confirmé']];
+const CAT_LABEL = Object.fromEntries(TPL_CATS), LVL_LABEL = Object.fromEntries(TPL_LVLS.concat([['all','Tous niveaux']]));
+let BUILTINS = null;
+function builtinLibrary(){
+  if (BUILTINS) return JSON.parse(JSON.stringify(BUILTINS));
+  const T = (id, sport, cat, lvl, title, desc, blocks) => ({id, sport, cat, lvl, title, desc, blocks, builtin:true});
+  const s = (dur, int, autre) => S(dur, int, autre ? {autre} : {});
+  const d = (dist, unit, int, autre) => { const st = S('', int, autre ? {autre} : {}); st.mode = 'dist'; st.dist = String(dist); st.unit = unit; return st; };
+  const pc = (dur, pct, autre) => { const st = S(dur, 'I2', autre ? {autre} : {}); st.crit = 'pct'; st.cval = String(pct); return st; };
+  const pd = (dist, unit, pct, autre) => { const st = d(dist, unit, 'I2', autre); st.crit = 'pct'; st.cval = String(pct); return st; };
+  const k = (title, reps, steps) => block(title, reps, steps);
+  const wu = (m, a) => k('Échauffement', 1, [s(m, 'I2', a)]), cd = m => k('Retour au calme', 1, [s(m, 'I1')]);
+  const rec = (m, a) => s(m, 'I1', a || 'récup');
+  const list = [
+    // ---------- Course à pied
+    T('t-run-ef','run','endurance','all','Footing 45\'','Footing en endurance fondamentale, aisance respiratoire.',[k('Footing',1,[s('45:00','I2')])]),
+    T('r-recup','run','recup','all','Footing récupération 30\'','Très facile, le lendemain d\'une séance dure.',[k('Footing',1,[s('30:00','I1','très souple')])]),
+    T('r-ef-ld','run','endurance','all','Footing + gammes + lignes droites','Endurance puis éducatifs et accélérations courtes.',[k('Footing',1,[s('35:00','I2')]),k('Gammes',1,[s('8:00','I2','montées de genoux, talons-fesses, pas chassés')]),k('Lignes droites',6,[s('0:20','I6','accélération progressive'),rec('1:00','retour marché')]),cd('5:00')]),
+    T('r-ef-1h','run','endurance','int','Footing 1 h','Endurance fondamentale longue.',[k('Footing',1,[s('1:00:00','I2')])]),
+    T('r-long-deb','run','long','deb','Sortie longue 1 h','Première sortie longue, allure très facile.',[k('Sortie longue',1,[s('1:00:00','I2')])]),
+    T('t-run-long','run','long','int','Sortie longue 1 h 15','Volume en endurance, terrain vallonné possible.',[k('Sortie longue',1,[s('1:15:00','I2')])]),
+    T('r-long-prog','run','long','conf','Sortie longue progressive 1 h 30','Accélérer par paliers sur la fin.',[k('Endurance',1,[s('45:00','I2')]),k('Tempo',1,[s('30:00','I3')]),k('Seuil',1,[s('15:00','I4')])]),
+    T('r-long-2h','run','long','conf','Sortie longue 2 h','Préparation marathon, ravitaillement à tester.',[k('Sortie longue',1,[s('2:00:00','I2','boire toutes les 20\'')])]),
+    T('r-fartlek','run','vma','deb','Fartlek nature 45\'','Changements de rythme au feeling.',[wu('15:00'),k('Fartlek',8,[s('1:00','I5'),rec('1:00')]),cd('10:00')]),
+    T('r-3030','run','vma','deb','VMA 2 × 10 × 30/30','Classique pour découvrir la VMA.',[wu('20:00','+ gammes'),k('Série 1',10,[s('0:30','I6'),rec('0:30')]),k('Récupération',1,[rec('3:00','trot')]),k('Série 2',10,[s('0:30','I6'),rec('0:30')]),cd('10:00')]),
+    T('t-run-vma','run','vma','int','VMA 10 × 400','Fractionné court sur piste.',[wu('15:00','+ gammes'),k('VMA',10,[pd(400,'m',100,'400 m'),rec('1:30','trot')]),cd('10:00')]),
+    T('r-vma-200','run','vma','conf','VMA courte 15 × 200','Vitesse, récupération courte.',[wu('20:00','+ gammes + 3 lignes droites'),k('VMA courte',15,[pd(200,'m',105),rec('0:45','trot')]),cd('10:00')]),
+    T('r-vma-1000','run','vma','int','VMA longue 5 × 1000','Puissance aérobie, allure 10 km rapide.',[wu('20:00','+ gammes'),k('VMA longue',5,[pd(1,'km',92),rec('2:00','trot')]),cd('10:00')]),
+    T('r-pyr','run','vma','conf','Pyramide 200 à 800','200-400-600-800-600-400-200, récup = moitié du temps d\'effort.',[wu('20:00','+ gammes'),k('200 m',1,[pd(200,'m',100),rec('0:45')]),k('400 m',1,[pd(400,'m',98),rec('1:00')]),k('600 m',1,[pd(600,'m',95),rec('1:30')]),k('800 m',1,[pd(800,'m',93),rec('2:00')]),k('600 m',1,[pd(600,'m',95),rec('1:30')]),k('400 m',1,[pd(400,'m',98),rec('1:00')]),k('200 m',1,[pd(200,'m',100),rec('0:45')]),cd('10:00')]),
+    T('r-seuil-deb','run','seuil','deb','Seuil 4 × 5\'','Découverte du seuil, récupération généreuse.',[wu('15:00'),k('Seuil',4,[s('5:00','I4'),rec('2:00','trot')]),cd('10:00')]),
+    T('t-run-seuil','run','seuil','int','Seuil 3 × 10\'','Allure semi-marathon / seuil.',[wu('15:00'),k('Seuil',3,[s('10:00','I4'),rec('2:00','trot')]),cd('10:00')]),
+    T('r-seuil-2x15','run','seuil','conf','Seuil 2 × 15\'','Tenue de l\'allure seuil.',[wu('20:00'),k('Seuil',2,[s('15:00','I4'),rec('3:00','trot')]),cd('10:00')]),
+    T('r-tempo','run','tempo','int','Tempo 30\' continu','Allure marathon, régularité.',[wu('15:00'),k('Tempo',1,[s('30:00','I3')]),cd('10:00')]),
+    T('r-tempo-3x10','run','tempo','deb','Tempo 3 × 10\'','Endurance active fractionnée.',[wu('15:00'),k('Tempo',3,[s('10:00','I3'),rec('2:00','trot')]),cd('10:00')]),
+    T('r-cotes','run','cotes','int','Côtes 10 × 30"','Pente 6 à 8 %, retour en trottinant.',[wu('20:00'),k('Côtes',10,[s('0:30','I6','montée dynamique'),rec('1:30','retour en descente')]),cd('10:00')]),
+    T('r-cotes-long','run','cotes','conf','Côtes longues 6 × 1\'30','Force et puissance aérobie.',[wu('20:00'),k('Côtes longues',6,[s('1:30','I5','montée régulière'),rec('2:30','descente')]),cd('10:00')]),
+    T('r-as10','run','specifique','int','Allure 10 km 3 × 2 km','Spécifique 10 km.',[wu('20:00','+ gammes'),k('Allure 10 km',3,[pd(2,'km',90),rec('2:30','trot')]),cd('10:00')]),
+    T('r-as10-1000','run','specifique','deb','Allure 10 km 6 × 1000','Découvrir l\'allure 10 km.',[wu('20:00'),k('Allure 10 km',6,[pd(1,'km',88),rec('1:30','trot')]),cd('10:00')]),
+    T('r-assemi','run','specifique','int','Allure semi 3 × 3 km','Spécifique semi-marathon.',[wu('20:00'),k('Allure semi',3,[pd(3,'km',84),rec('2:00','trot')]),cd('10:00')]),
+    T('r-asmara','run','specifique','conf','Allure marathon 2 × 5 km','Spécifique marathon, dans une sortie de 1 h 30.',[wu('25:00'),k('Allure marathon',2,[pd(5,'km',78),rec('3:00','footing')]),cd('15:00')]),
+    T('r-brick','run','specifique','int','Course enchaînée 20\' (après vélo)','À faire juste après une sortie vélo.',[k('Mise en jambes',1,[s('5:00','I2','foulée courte')]),k('Allure course',1,[s('10:00','I4')]),k('Retour',1,[s('5:00','I2')])]),
+    // ---------- Natation
+    T('t-swim-ef','swim','technique','all','Endurance technique','Aérobie + éducatifs, idéale en début de semaine.',[k('Échauffement',1,[s('10:00','I2','400 m varié')]),k('Éducatifs',8,[s('1:00','I2','50 m (rattrapé, poings fermés…)')]),k('Pull-buoy',4,[s('5:00','I3','300 m pull'),rec('0:30')]),cd('5:00')]),
+    T('s-tech-deb','swim','technique','deb','Technique débutant','Éducatifs courts et respiration.',[k('Échauffement',1,[d(200,'m','I2','souple')]),k('Éducatifs',12,[d(25,'m','I2','battements, rattrapé, respiration 3 temps'),rec('0:20')]),k('Nage complète',8,[d(50,'m','I2'),rec('0:20')]),k('Retour au calme',1,[d(100,'m','I1','dos')])]),
+    T('s-recup','swim','recup','all','Nage récupération 30\'','Nage souple et variée.',[k('Nage souple',1,[s('30:00','I1','crawl / dos / brasse')])]),
+    T('t-swim-seuil','swim','seuil','int','Seuil 10 × 100','Travail au seuil, départ toutes les 2 min.',[k('Échauffement',1,[s('10:00','I2')]),k('Seuil',10,[pd(100,'m',98,'100 m'),rec('0:20')]),cd('5:00')]),
+    T('s-css','swim','seuil','conf','CSS 8 × 200','Allure seuil (CSS), récupération courte.',[k('Échauffement',1,[d(400,'m','I2','varié')]),k('Seuil',8,[pd(200,'m',98),rec('0:20')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-pyr','swim','seuil','int','Pyramide 100-200-300-200-100','Allure seuil, 20" de récupération.',[k('Échauffement',1,[d(300,'m','I2')]),k('100 m',1,[pd(100,'m',100),rec('0:20')]),k('200 m',1,[pd(200,'m',98),rec('0:20')]),k('300 m',1,[pd(300,'m',96),rec('0:30')]),k('200 m',1,[pd(200,'m',98),rec('0:20')]),k('100 m',1,[pd(100,'m',100),rec('0:20')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-pull','swim','endurance','int','Endurance pull-buoy 6 × 300','Endurance des bras, régularité.',[k('Échauffement',1,[d(300,'m','I2')]),k('Pull-buoy',6,[d(300,'m','I3','pull-buoy + plaquettes'),rec('0:30')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-ef-2000','swim','endurance','deb','Endurance 2000 m','Endurance continue fractionnée.',[k('Échauffement',1,[d(300,'m','I2')]),k('Endurance',4,[d(300,'m','I2'),rec('0:30')]),k('Retour au calme',1,[d(500,'m','I1','varié')])]),
+    T('s-long','swim','long','conf','Endurance longue 3000 m','Volume pour les longues distances.',[k('Échauffement',1,[d(400,'m','I2')]),k('Endurance',1,[d(2400,'m','I2','nage continue')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-vit','swim','vma','conf','Vitesse 16 × 50','Vitesse et fréquence de bras.',[k('Échauffement',1,[d(400,'m','I2')]),k('Vitesse',16,[pd(50,'m',108),rec('0:30')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-vit-deb','swim','vma','deb','Vitesse 8 × 25','Accélérations courtes, récupération complète.',[k('Échauffement',1,[d(300,'m','I2')]),k('Vitesse',8,[pd(25,'m',105),rec('0:45')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-mixte','swim','technique','int','Palmes et plaquettes','Travail technique avec matériel.',[k('Échauffement',1,[d(300,'m','I2')]),k('Palmes',6,[d(100,'m','I2','palmes, battements'),rec('0:20')]),k('Plaquettes',6,[d(100,'m','I3','plaquettes'),rec('0:20')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    T('s-ow','swim','specifique','conf','Spécifique eau libre','Orientation, départs et changements de rythme.',[k('Échauffement',1,[d(400,'m','I2')]),k('Eau libre',3,[d(400,'m','I3','lever la tête toutes les 6 coulées'),rec('0:30')]),k('Départs',6,[d(25,'m','I6','départ rapide'),d(75,'m','I3'),rec('0:30')]),k('Retour au calme',1,[d(200,'m','I1')])]),
+    // ---------- Vélo
+    T('b-recup','bike','recup','all','Récupération 45\'','Pédalage très souple.',[k('Récupération',1,[s('45:00','I1','petit braquet, 90 rpm')])]),
+    T('t-bike-ef','bike','endurance','all','Endurance 1 h 30','Sortie foncière à allure conversation.',[k('Endurance',1,[s('1:30:00','I2','85-95 rpm')])]),
+    T('b-ef-1h','bike','endurance','deb','Endurance 1 h','Sortie facile, cadence régulière.',[k('Endurance',1,[s('1:00:00','I2','85-95 rpm')])]),
+    T('b-ef-2h','bike','long','int','Sortie longue 2 h','Endurance, s\'alimenter régulièrement.',[k('Endurance',1,[s('2:00:00','I2','manger toutes les 45\'')])]),
+    T('b-long-3h','bike','long','conf','Sortie longue 3 h','Volume, avec 3 blocs tempo.',[k('Endurance',1,[s('2:00:00','I2')]),k('Tempo',3,[s('10:00','I3'),s('5:00','I2')]),k('Retour au calme',1,[s('15:00','I1')])]),
+    T('b-tempo','bike','tempo','int','Tempo 3 × 15\'','Endurance active, position aéro.',[wu('15:00'),k('Tempo',3,[s('15:00','I3','position aéro'),rec('5:00')]),cd('10:00')]),
+    T('t-bike-ss','bike','seuil','int','Sweet spot 3 × 12\'','Puissance au seuil sans trop de fatigue.',[wu('15:00'),k('Sweet spot',3,[pc('12:00',90,'85-90 rpm'),rec('5:00')]),cd('10:00')]),
+    T('b-seuil-deb','bike','seuil','deb','Seuil 4 × 6\'','Découverte du seuil.',[wu('15:00'),k('Seuil',4,[s('6:00','I4'),rec('4:00')]),cd('10:00')]),
+    T('b-seuil-2x20','bike','seuil','conf','Seuil 2 × 20\'','Tenue au seuil (FTP).',[wu('20:00'),k('Seuil',2,[pc('20:00',97),rec('5:00')]),cd('10:00')]),
+    T('b-overunder','bike','seuil','conf','Over / under 3 × (4 × 2\')','Alterner au-dessus et en dessous du seuil.',[wu('20:00'),k('Over / under',3,[pc('2:00',105,'over'),pc('2:00',92,'under'),pc('2:00',105,'over'),pc('2:00',92,'under'),rec('5:00')]),cd('10:00')]),
+    T('t-bike-pma','bike','vma','int','PMA 2 × (8 × 30/30)','Intensité courte pour la puissance maximale aérobie.',[wu('20:00'),k('Série 1 — 30/30',8,[s('0:30','I6'),rec('0:30')]),k('Récupération',1,[rec('5:00')]),k('Série 2 — 30/30',8,[s('0:30','I6'),rec('0:30')]),cd('10:00')]),
+    T('b-pma-5x3','bike','vma','int','PMA 5 × 3\'','Puissance aérobie longue.',[wu('20:00'),k('PMA',5,[pc('3:00',112),rec('3:00')]),cd('10:00')]),
+    T('b-sprints','bike','vma','conf','Sprints 8 × 15"','Puissance maximale, récupération complète.',[wu('20:00'),k('Sprints',8,[s('0:15','I7','départ lancé, en danseuse'),rec('3:45')]),cd('10:00')]),
+    T('b-force','bike','cotes','int','Force 6 × 4\' petite cadence','En côte ou gros braquet, 50-60 rpm.',[wu('15:00'),k('Force',6,[s('4:00','I3','50-60 rpm, assis'),rec('3:00')]),cd('10:00')]),
+    T('b-cotes','bike','cotes','conf','Côtes 5 × 5\'','Montées au seuil.',[wu('20:00'),k('Montées',5,[s('5:00','I4','côte régulière'),rec('4:00','descente')]),cd('10:00')]),
+    T('b-cadence','bike','technique','deb','Vélocité 8 × 2\'','Haute cadence, souplesse.',[wu('15:00'),k('Vélocité',8,[s('2:00','I2','110+ rpm'),rec('1:00')]),cd('10:00')]),
+    T('b-ht-pyr','bike','seuil','int','Home trainer pyramide 1 h','3-5-7-5-3 au seuil, récup 3\'.',[wu('15:00'),k('3\'',1,[s('3:00','I4'),rec('3:00')]),k('5\'',1,[s('5:00','I4'),rec('3:00')]),k('7\'',1,[s('7:00','I4'),rec('3:00')]),k('5\'',1,[s('5:00','I4'),rec('3:00')]),k('3\'',1,[s('3:00','I4'),rec('3:00')]),cd('5:00')]),
+    T('b-race','bike','specifique','int','Allure course 2 × 20\'','Allure triathlon, puis course enchaînée possible.',[wu('15:00'),k('Allure course',2,[s('20:00','I3','position aéro, s\'alimenter'),rec('5:00')]),cd('10:00')]),
+    // ---------- Renforcement
+    T('t-str-gain','strength','mobilite','all','Gainage triathlète','Gainage complet, sans matériel.',[k('Circuit gainage',3,[s('0:45','I3','gainage ventral'),s('0:45','I3','latéral gauche'),s('0:45','I3','latéral droit'),s('0:45','I3','superman'),rec('1:00')])]),
+    T('t-str-halt','strength','renfo','int','Circuit haltères','Renforcement général avec haltères.',[k('Circuit',4,[s('0:40','I3','squats haltères'),s('0:40','I3','fentes'),s('0:40','I3','rowing'),s('0:40','I3','développé militaire'),rec('1:00')])]),
+    T('g-circuit','strength','renfo','int','Circuit training haltères','Circuit complet, 40" d\'effort par atelier.',[k('Échauffement',1,[s('8:00','I2','corde à sauter, mobilité')]),k('Circuit',4,[s('0:40','I4','squat haltères'),s('0:40','I4','développé couché'),s('0:40','I4','rowing'),s('0:40','I4','fentes alternées'),s('0:40','I4','swing kettlebell'),rec('1:30')]),k('Retour au calme',1,[s('5:00','I1','étirements')])]),
+    T('g-pdc','strength','renfo','deb','Circuit poids du corps','Sans matériel, à la maison.',[k('Circuit',3,[s('0:30','I3','squats'),s('0:30','I3','pompes (genoux possible)'),s('0:30','I3','fentes'),s('0:30','I3','gainage'),s('0:30','I3','montées de genoux'),rec('1:00')])]),
+    T('g-plio','strength','renfo','conf','Pliométrie coureur','Sauts et bondissements, sol souple.',[k('Échauffement',1,[s('10:00','I2','footing + gammes')]),k('Pliométrie',4,[s('0:20','I6','sauts groupés'),s('0:20','I6','bondissements'),s('0:20','I6','skipping'),rec('1:30')])]),
+    T('g-nage','strength','renfo','int','Renfo haut du corps nageur','Épaules et dos, avec élastique.',[k('Circuit',3,[s('0:45','I3','rotation externe élastique'),s('0:45','I3','tirage élastique'),s('0:45','I3','pompes'),s('0:45','I3','gainage dynamique'),rec('1:00')])]),
+    T('g-jambes','strength','renfo','int','Renfo jambes cycliste','Quadriceps, fessiers, mollets.',[k('Circuit',3,[s('1:00','I3','chaise'),s('0:45','I3','squats'),s('0:45','I3','fentes sautées'),s('0:45','I3','mollets'),rec('1:00')])]),
+    T('g-mob','strength','mobilite','all','Mobilité et étirements 20\'','Récupération active, souplesse.',[k('Mobilité',1,[s('10:00','I1','hanches, chevilles, épaules')]),k('Étirements',1,[s('10:00','I1','ischios, quadriceps, mollets, dos')])])
+  ];
+  list.forEach(t => t.blocks.forEach(b => b.steps.forEach(st => { if (st.crit === 'pct') applyCrit(st, t.sport, null); })));
+  BUILTINS = list;
+  return JSON.parse(JSON.stringify(list));
+}
+const builtinIds = () => new Set(builtinLibrary().map(t => t.id));
+// Bibliothèque = catalogue intégré + séances types ajoutées par le coach
+function mergeLibrary(lib){
+  const b = builtinLibrary(), ids = new Set(b.map(t => t.id));
+  lib.sessions = b.concat((lib.sessions || []).filter(t => !ids.has(t.id) && !t.builtin));
+  return lib;
+}
+const tplCat = t => t.cat || (t.sport === 'strength' ? 'renfo' : (() => {
+  const mx = Math.max(0, ...t.blocks.flatMap(b => b.steps.map(st => +(st.int || 'I2')[1])));
+  return mx <= 1 ? 'recup' : mx === 2 ? (tplDur(t) >= 75*60 ? 'long' : 'endurance') : mx === 3 ? 'tempo' : mx === 4 ? 'seuil' : 'vma';
+})());
+const tplLvl = t => t.lvl || 'all';
+function filterTpls(f){
+  const q = noAcc(f.q || '');
+  return state.library.sessions.filter(t => {
+    if (f.sport && f.sport !== 'all' && t.sport !== f.sport) return false;
+    if (f.cat && f.cat !== 'all' && tplCat(t) !== f.cat) return false;
+    if (f.lvl && f.lvl !== 'all' && tplLvl(t) !== 'all' && tplLvl(t) !== f.lvl) return false;
+    if (f.dur && f.dur !== 'all'){ const m = tplDur(t) / 60; if (f.dur === 's' ? m >= 45 : f.dur === 'm' ? (m < 45 || m > 75) : m <= 75) return false; }
+    if (q && !noAcc(t.title + ' ' + (t.desc || '') + ' ' + CAT_LABEL[tplCat(t)]).includes(q)) return false;
+    return true;
+  });
+}
+function filtersHTML(f, prefix, count){
+  const cats = TPL_CATS.filter(([c]) => state.library.sessions.some(t => (f.sport === 'all' || !f.sport || t.sport === f.sport) && tplCat(t) === c));
+  const opt = (arr, v) => arr.map(([k, l]) => `<option value="${k}" ${k === v ? 'selected' : ''}>${l}</option>`).join('');
+  return `<div class="lfilt" id="${prefix}filt">
+    <div class="filt">${[['all','Tous']].concat(SPORT_KEYS.map(k => [k, SPORTS[k].label])).map(([k,l]) => `<button class="${(f.sport||'all')===k?'on':''}" data-a="${prefix}sport" data-v="${k}">${k === 'all' ? '' : icon(k, 12)}${l}</button>`).join('')}</div>
+    <select data-lf="${prefix}" data-k="cat" title="Type de séance"><option value="all">Tous types</option>${opt(cats, f.cat)}</select>
+    <select data-lf="${prefix}" data-k="lvl" title="Niveau"><option value="all">Tous niveaux</option>${opt(TPL_LVLS, f.lvl)}</select>
+    <select data-lf="${prefix}" data-k="dur" title="Durée"><option value="all">Toutes durées</option>${opt([['s','< 45\''],['m','45\' – 1 h 15'],['l','> 1 h 15']], f.dur)}</select>
+    <input type="search" data-lf="${prefix}" data-k="q" value="${esc(f.q || '')}" placeholder="Rechercher…">
+    <span class="cnt">${count} séance${count > 1 ? 's' : ''}</span>
+  </div>`;
+}
+const tplTags = t => `<span class="tag">${CAT_LABEL[tplCat(t)] || ''}</span>${tplLvl(t) !== 'all' ? `<span class="tag">${LVL_LABEL[tplLvl(t)]}</span>` : ''}${t.builtin ? '' : '<span class="tag">perso</span>'}`;
+
 function defaultLibrary(){
   const T = (id, sport, title, desc, blocks) => ({id, sport, title, desc, blocks});
   const s = step, b = block;
-  const sessions = [
-    T('t-swim-ef','swim','Natation — Endurance technique','Aérobie + éducatifs, idéale en début de semaine.',[
-      b('Échauffement',1,[s('10:00','Z1',{autre:'400 m varié'})]),
-      b('Éducatifs',8,[s('1:00','Z1',{autre:'50 m (rattrapé, poings fermés…)'})]),
-      b('Pull-buoy',4,[s('5:00','Z2',{autre:'300 m pull'}),s('0:30','Z1',{autre:'récup'})]),
-      b('Retour au calme',1,[s('5:00','Z1',{autre:'200 m souple'})])]),
-    T('t-swim-seuil','swim','Natation — Seuil 10 × 100','Travail au seuil, départ toutes les 2 min.',[
-      b('Échauffement',1,[s('10:00','Z1')]),
-      b('Seuil',10,[s('1:45','Z3',{autre:'100 m',rpe:'7'}),s('0:20','Z1',{autre:'récup'})]),
-      b('Retour au calme',1,[s('5:00','Z1')])]),
-    T('t-bike-ef','bike','Vélo — Endurance 1 h 30','Sortie foncière à allure conversation.',[
-      b('Endurance',1,[s('1:30:00','Z1',{puiss:'60-70 % FTP',taux:'85-95 rpm'})])]),
-    T('t-bike-ss','bike','Vélo — Sweet spot 3 × 12\'','Développe la puissance au seuil sans trop de fatigue.',[
-      b('Échauffement',1,[s('15:00','Z1')]),
-      b('Sweet spot',3,[s('12:00','Z2',{puiss:'88-93 % FTP',taux:'85-90 rpm',rpe:'6'}),s('5:00','Z1',{autre:'récup'})]),
-      b('Retour au calme',1,[s('10:00','Z1')])]),
-    T('t-bike-pma','bike','Vélo — PMA 2 × (8 × 30/30)','Intensité courte pour la puissance maximale aérobie.',[
-      b('Échauffement',1,[s('20:00','Z1')]),
-      b('Série 1 — 30/30',8,[s('0:30','Z3',{puiss:'120 % PMA',rpe:'9'}),s('0:30','Z1')]),
-      b('Récupération',1,[s('5:00','Z1')]),
-      b('Série 2 — 30/30',8,[s('0:30','Z3',{puiss:'120 % PMA',rpe:'9'}),s('0:30','Z1')]),
-      b('Retour au calme',1,[s('10:00','Z1')])]),
-    T('t-run-ef','run','CAP — Footing 45\'','Footing en endurance fondamentale.',[
-      b('Footing',1,[s('45:00','Z1',{autre:'aisance respiratoire'})])]),
-    T('t-run-vma','run','CAP — VMA 10 × 400','Fractionné court sur piste.',[
-      b('Échauffement',1,[s('15:00','Z1',{autre:'+ gammes'})]),
-      b('VMA',10,[s('1:30','Z3',{puiss:'100 % VMA',autre:'400 m',rpe:'8'}),s('1:30','Z1',{autre:'trot'})]),
-      b('Retour au calme',1,[s('10:00','Z1')])]),
-    T('t-run-seuil','run','CAP — Seuil 3 × 10\'','Allure semi-marathon / seuil.',[
-      b('Échauffement',1,[s('15:00','Z1')]),
-      b('Seuil',3,[s('10:00','Z2',{puiss:'allure semi',rpe:'6'}),s('2:00','Z1')]),
-      b('Retour au calme',1,[s('10:00','Z1')])]),
-    T('t-run-long','run','CAP — Sortie longue 1 h 15','Volume en endurance, terrain vallonné possible.',[
-      b('Sortie longue',1,[s('1:15:00','Z1')])]),
-    T('t-str-gain','strength','Renfo — Gainage triathlète','Gainage complet, sans matériel.',[
-      b('Circuit gainage',3,[s('0:45','Z2',{autre:'gainage ventral'}),s('0:45','Z2',{autre:'latéral gauche'}),s('0:45','Z2',{autre:'latéral droit'}),s('0:45','Z2',{autre:'superman'}),s('1:00','Z1',{autre:'récup'})])]),
-    T('t-str-halt','strength','Renfo — Circuit haltères','Renforcement général avec haltères.',[
-      b('Circuit',4,[s('0:40','Z2',{autre:'squats haltères'}),s('0:40','Z2',{autre:'fentes'}),s('0:40','Z2',{autre:'rowing'}),s('0:40','Z2',{autre:'développé militaire'}),s('1:00','Z1',{autre:'récup'})])])
-  ];
+  const sessions = builtinLibrary();
   const plans = [
     {id:'p-reprise', title:'Reprise — semaine type débutant', desc:'3 séances faciles pour reprendre (natation, CAP, vélo).',
       weeks:[[[1,'t-swim-ef'],[3,'t-run-ef'],[5,'t-bike-ef']]]},
@@ -674,7 +802,7 @@ const libPTo = p => ({id:p.id, title:p.title, descr:p.desc || '', weeks:p.weeks}
 function takeSnapshot(){
   snap.sessions = new Map(state.sessions.map(s => [s.id, J(sessTo(s))]));
   snap.users = new Map(state.users.map(u => [u.id, J(userTo(u))]));
-  snap.libS = new Map(state.library.sessions.map(t => [t.id, J(libSTo(t))]));
+  snap.libS = new Map(state.library.sessions.filter(t => !t.builtin).map(t => [t.id, J(libSTo(t))]));
   snap.libP = new Map(state.library.plans.map(p => [p.id, J(libPTo(p))]));
 }
 async function loadAll(){
@@ -686,9 +814,12 @@ async function loadAll(){
   const err = p.error || s.error || ls.error || lp.error; if (err) throw err;
   state = {users:p.data.map(userFrom), sessions:s.data.map(sessFrom), library:{sessions:ls.data.map(libSFrom), plans:lp.data.map(libPFrom)}};
   me = getUser(me.id) || me;
-  if (me.role === 'coach' && !state.library.sessions.length && !state.library.plans.length){
-    const d = defaultLibrary(); state.library = d;
-    await sb.from('library_sessions').insert(d.sessions.map(libSTo));
+  // le catalogue est intégré au site : les anciennes copies en base sont retirées, les séances perso gardées
+  const stale = state.library.sessions.filter(t => builtinIds().has(t.id) && !t.custom).map(t => t.id);
+  mergeLibrary(state.library);
+  if (me.role === 'coach' && stale.length) await sb.from('library_sessions').delete().in('id', stale);
+  if (me.role === 'coach' && !state.library.plans.length){
+    const d = defaultLibrary(); state.library.plans = d.plans;
     await sb.from('library_plans').insert(d.plans.map(libPTo));
   }
   takeSnapshot();
@@ -721,7 +852,7 @@ async function flush(){
       snap.users.set(u.id, v);
     }
     if (me.role === 'coach'){
-      snap.libS = await diffSync(state.library.sessions, snap.libS, libSTo, 'library_sessions');
+      snap.libS = await diffSync(state.library.sessions.filter(t => !t.builtin), snap.libS, libSTo, 'library_sessions');
       snap.libP = await diffSync(state.library.plans, snap.libP, libPTo, 'library_plans');
     }
     dirty = false; setStatus('Enregistré');
@@ -918,12 +1049,16 @@ function athleteView(){
       <button class="tab ${ui.tab==='agenda'?'on':''}" data-a="tab" data-v="agenda">Semaine</button>
       <button class="tab ${ui.tab==='bilan'?'on':''}" data-a="tab" data-v="bilan">Bilan semaine</button>
       <button class="tab ${ui.tab==='mois'?'on':''}" data-a="tab" data-v="mois">Bilan mois</button>
+      <button class="tab ${ui.tab==='stats'?'on':''}" data-a="tab" data-v="stats">Statistiques</button>
+      <button class="tab ${ui.tab==='ex'?'on':''}" data-a="tab" data-v="ex">Exercices</button>
       <button class="tab ${ui.tab==='lib'?'on':''}" data-a="tab" data-v="lib">Plans &amp; séances types</button>
       <button class="tab ${ui.tab==='strava'?'on':''}" data-a="tab" data-v="strava"><span class="strava">●</span> Strava</button>
       <button class="tab ${ui.tab==='profil'?'on':''}" data-a="tab" data-v="profil">Profil &amp; zones</button>
     </div>
     ${ui.tab === 'mois' ? monthNav() + monthBilanView(aid)
       : ui.tab === 'lib' ? libraryView(aid)
+      : ui.tab === 'ex' ? exercisesView()
+      : ui.tab === 'stats' ? statsView(aid)
       : ui.tab === 'strava' ? stravaView(aid)
       : ui.tab === 'profil' ? profileView(aid)
       : weekNav() + (ui.tab === 'agenda' ? weekPage(aid) : weekBilanView(aid))}`;
@@ -1099,7 +1234,7 @@ function detailHTML(s){
           <td id="lr-${bi}-${si}">${L.rpe}</td>
           <td id="lf-${bi}-${si}">${L.fc}</td>
           ${s.sport === 'strength' ? '' : `<td id="la-${bi}-${si}">${L.pace}</td>`}
-          <td><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" placeholder="consigne" ${ro}></td>
+          <td><div style="display:flex;gap:2px;align-items:center"><input data-f="step" data-b="${bi}" data-s="${si}" data-k="autre" value="${esc(st.autre)}" placeholder="consigne" ${ro}>${exFor(st.autre) ? `<button class="ib" title="Voir l'exercice animé" data-a="exshow" data-id="${exFor(st.autre).id}">🎬</button>` : ''}</div></td>
           <td>${ro ? '' : `<button class="ib red" title="Supprimer la ligne" data-a="sdel" data-b="${bi}" data-s="${si}">✕</button>`}</td>
         </tr>`; }).join('')}</tbody>
       </table></div>
@@ -1142,6 +1277,296 @@ function detailHTML(s){
         : `<button class="vbtn" data-a="validate" data-id="${s.id}">✓ Valider la séance réalisée</button>`}
     </div>
   </div>`;
+}
+
+/* ===================== Statistiques ===================== */
+const STACK = ['run','swim','bike','strength'];          // ordre d'empilement validé pour la lisibilité (daltonisme)
+const LONG3 = ['run','bike','swim'];
+const LINE_C = {run:'#1f6b45', bike:'#a35a14', swim:'#155d8c'};  // teinte plus foncée du sport pour la ligne « plus longue »
+function sessDur(s, mode){ return mode === 'prevu' ? sum(plannedZones(s)) : (isDone(s) ? sum(realZones(s)) : 0); }
+function weeklyStats(aid, endWeek, n, mode){
+  const out = [];
+  for (let i = n - 1; i >= 0; i--){
+    const ws = addDays(endWeek, -7*i), list = sessionsOf(aid, ws);
+    const tot = {run:0, bike:0, swim:0, strength:0}, lng = {run:0, bike:0, swim:0};
+    list.forEach(s => { const d = sessDur(s, mode); tot[s.sport] += d; if (lng[s.sport] !== undefined) lng[s.sport] = Math.max(lng[s.sport], d); });
+    out.push({ws, tot, lng, total: tot.run + tot.bike + tot.swim + tot.strength});
+  }
+  return out;
+}
+function niceStep(maxH){ const steps = [0.5, 1, 2, 3, 5, 10, 15, 20]; return steps.find(s => maxH / s <= 5) || 25; }
+function statsChart(data){
+  const W = 1000, H = 300, L = 44, R = 10, T = 20, B = 30, pw = W - L - R, ph = H - T - B;
+  const maxS = Math.max(3600, ...data.map(d => Math.max(d.total, ...LONG3.map(k => d.lng[k]))));
+  const step = niceStep(maxS / 3600) * 3600, ymax = Math.ceil(maxS * 1.08 / step) * step;
+  const y = v => T + ph - v / ymax * ph, n = data.length, slot = pw / n, bw = Math.min(46, slot * 0.58);
+  const cx = i => L + slot * i + slot / 2;
+  let g = '';
+  for (let v = 0; v <= ymax + 1; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="${v ? '#eef2f5' : '#c9d2da'}" stroke-width="1"/><text x="${L - 6}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="11" fill="#5d6b7a">${v ? fmtC(v).replace("'", ' min') : '0'}</text>`;
+  const every = n > 26 ? 4 : n > 12 ? 2 : 1, cur = mondayOf(todayStr());
+  data.forEach((d, i) => {
+    const x = cx(i) - bw / 2; let base = 0;
+    const segs = STACK.filter(k => d.tot[k] > 0);
+    segs.forEach((k, j) => {
+      const y0 = y(base), y1 = y(base + d.tot[k]), top = j === segs.length - 1, gap = j ? 1 : 0;
+      const hh = Math.max(0, y0 - y1 - gap);
+      if (hh > 0) g += top && hh > 4
+        ? `<path d="M${x},${(y1 + hh).toFixed(1)} V${(y1 + 4).toFixed(1)} Q${x},${y1.toFixed(1)} ${x + 4},${y1.toFixed(1)} H${x + bw - 4} Q${x + bw},${y1.toFixed(1)} ${x + bw},${(y1 + 4).toFixed(1)} V${(y1 + hh).toFixed(1)} Z" fill="${SPORTS[k].color}"/>`
+        : `<rect x="${x}" y="${y1.toFixed(1)}" width="${bw}" height="${hh.toFixed(1)}" fill="${SPORTS[k].color}"/>`;
+      base += d.tot[k];
+    });
+    if (d.total > 0 && (n <= 16 || i % every === 0 || i === n - 1)) g += `<text x="${cx(i)}" y="${(y(d.total) - 5).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="#16202b">${fmtC(d.total)}</text>`;
+    if (i % every === 0 || i === n - 1){ const dt = parseYmd(d.ws); g += `<text x="${cx(i)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="${d.ws === cur ? '#16202b' : '#5d6b7a'}" font-weight="${d.ws === cur ? 700 : 400}">${dt.getDate()}/${dt.getMonth() + 1}</text>`; }
+  });
+  LONG3.forEach(k => {
+    const pts = data.map((d, i) => [cx(i), y(d.lng[k]), d.lng[k]]);
+    if (!pts.some(p => p[2] > 0)) return;
+    // une ligne par suite de semaines avec données : pas de retombée à zéro sur les semaines vides
+    let run = [];
+    const flushRun = () => { if (run.length > 1) g += `<polyline points="${run.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" fill="none" stroke="${LINE_C[k]}" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>`; run = []; };
+    pts.forEach(p => { if (p[2] > 0) run.push(p); else flushRun(); }); flushRun();
+    pts.forEach(p => { if (p[2] > 0) g += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5" fill="${LINE_C[k]}" stroke="#fff" stroke-width="2"/>`; });
+  });
+  data.forEach((d, i) => g += `<rect class="hit" data-i="${i}" x="${(L + slot * i).toFixed(1)}" y="${T}" width="${slot.toFixed(1)}" height="${ph}" fill="transparent"/>`);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Temps hebdomadaire par sport et plus longue séance de la semaine">${g}</svg>`;
+}
+function statsView(aid){
+  const n = +(ui.statN || 12), end = ui.statEnd || mondayOf(todayStr()), mode = ui.mode || 'realise';
+  const data = weeklyStats(aid, end, n, mode);
+  window._statData = data;
+  const sumK = k => data.reduce((a, d) => a + d.tot[k], 0), tot = data.reduce((a, d) => a + d.total, 0);
+  const maxL = k => Math.max(0, ...data.map(d => d.lng[k]));
+  const cur = mondayOf(todayStr());
+  const rows = data.slice().reverse().map(d => { const dt = parseYmd(d.ws);
+    return `<tr class="${d.ws === cur ? 'cur' : ''}"><td>${dt.getDate()} ${MONTHS[dt.getMonth()]}</td>${STACK.map(k => `<td>${fmtC(d.tot[k])}</td>`).join('')}<td><b>${fmtC(d.total)}</b></td>${LONG3.map(k => `<td>${fmtC(d.lng[k])}</td>`).join('')}</tr>`; }).join('');
+  return `<div class="row" style="margin:4px 0 8px;gap:8px">
+      <div class="seg"><button class="${mode==='realise'?'on':''}" data-a="mode" data-v="realise">Réalisé</button><button class="${mode==='prevu'?'on':''}" data-a="mode" data-v="prevu">Prévu</button></div>
+      <div class="seg">${[8,12,26,52].map(k => `<button class="${n===k?'on':''}" data-a="statn" data-v="${k}">${k} sem.</button>`).join('')}</div>
+      <button class="btn sm" data-a="statprev">◀</button><button class="btn sm" data-a="statnext">▶</button>
+      <span class="ztxt">jusqu'à la semaine du ${longDate(end)}</span>
+    </div>
+    <div class="chart" id="statchart">
+      <div class="lg"><span class="sep">Temps semaine</span>${STACK.map(k => `<span><i style="background:${SPORTS[k].color}"></i>${SPORTS[k].label}</span>`).join('')}
+        <span class="sep" style="margin-left:8px">Plus longue séance</span>${LONG3.map(k => `<span style="color:${LINE_C[k]}"><u></u><span style="color:var(--ink)">${SPORTS[k].label}</span></span>`).join('')}</div>
+      ${statsChart(data)}
+      <div class="tip" id="stattip"></div>
+    </div>
+    <div class="kpis" style="margin-top:8px">
+      <div class="kpi"><small>Total sur ${n} semaines</small><b>${fmtC(tot)}</b></div>
+      <div class="kpi"><small>Moyenne par semaine</small><b>${fmtC(tot / n)}</b></div>
+      ${LONG3.map(k => `<div class="kpi"><small>Plus longue ${SPORTS[k].label.toLowerCase() === 'cap' ? 'CAP' : SPORTS[k].label.toLowerCase()}</small><b>${fmtC(maxL(k))}</b></div>`).join('')}
+    </div>
+    <div class="sect">Détail par semaine</div>
+    <div class="pane" style="padding:0;overflow:auto"><table class="stt">
+      <thead><tr><th>Semaine du</th>${STACK.map(k => `<th>${SPORTS[k].label}</th>`).join('')}<th>Total</th>${LONG3.map(k => `<th>+ longue ${SPORTS[k].label}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td>Total</td>${STACK.map(k => `<td>${fmtC(sumK(k))}</td>`).join('')}<td>${fmtC(tot)}</td>${LONG3.map(k => `<td>${fmtC(maxL(k))}</td>`).join('')}</tr></tfoot>
+    </table></div>`;
+}
+// Infobulle du graphique
+document.addEventListener('mousemove', e => {
+  const hit = e.target.closest && e.target.closest('#statchart rect.hit'), tip = document.getElementById('stattip');
+  if (!tip) return;
+  if (!hit){ tip.style.display = 'none'; return; }
+  const d = window._statData[+hit.dataset.i], box = document.getElementById('statchart').getBoundingClientRect(), dt = parseYmd(d.ws);
+  tip.innerHTML = `<b>Semaine du ${dt.getDate()} ${MONTHS[dt.getMonth()]}</b><br>${STACK.map(k => `<i style="background:${SPORTS[k].color}"></i>${SPORTS[k].label} ${fmtC(d.tot[k])}`).join('<br>')}<br><b>Total ${fmtC(d.total)}</b><br>Plus longue : ${LONG3.map(k => `${SPORTS[k].label} ${fmtC(d.lng[k])}`).join(' · ')}`;
+  tip.style.display = 'block';
+  let x = e.clientX - box.left + 14; if (x + tip.offsetWidth > box.width) x = e.clientX - box.left - tip.offsetWidth - 14;
+  tip.style.left = x + 'px'; tip.style.top = Math.max(4, e.clientY - box.top - tip.offsetHeight / 2) + 'px';
+});
+
+/* ===================== Exercices illustrés (personnage animé) ===================== */
+/* Personnage : homme asiatique, 1,72 m, 70 kg (silhouette normale, proportions réalistes : tête ≈ 1/7,5 de la taille) */
+const SKIN = '#e9bf98', SKIN2 = '#d3a47c', HAIR = '#18181c';
+const ease3 = 'keyTimes="0;.5;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"';
+const rotA = (vals, cx, cy, extra) => `<animateTransform attributeName="transform" type="rotate" values="${vals.map(v => v + ' ' + cx + ' ' + cy).join(';')}" ${extra}/>`;
+
+function svgJumpingJack(){
+  // vue de face, 1 unité ≈ 1 cm ; sol à y = 205, sommet de la tête à y = 33
+  const L = 'dur="1s" repeatCount="indefinite"', E = ease3 + ' ' + L;
+  const arm = (sx, side) => { const s = side; // s = 1 bras gauche (à l'écran), -1 bras droit
+    return `<g>${rotA([7*s, 172*s, 7*s], sx, 66, E)}
+      <line x1="${sx}" y1="66" x2="${sx}" y2="79" stroke="#0f5c8c" stroke-width="10.5" stroke-linecap="round"/>
+      <line x1="${sx}" y1="76" x2="${sx}" y2="95" stroke="${SKIN}" stroke-width="7.4" stroke-linecap="round"/>
+      <g>${rotA([-7*s, -4*s, -7*s], sx, 95, E)}
+        <line x1="${sx}" y1="95" x2="${sx}" y2="118" stroke="${SKIN}" stroke-width="6.4" stroke-linecap="round"/>
+        <ellipse cx="${sx}" cy="124" rx="3.8" ry="6.4" fill="${SKIN}"/>
+        <ellipse cx="${sx + 3.2*s}" cy="120.5" rx="1.5" ry="3" fill="${SKIN2}" transform="rotate(${-20*s} ${sx + 3.2*s} 120.5)"/>
+      </g></g>`; };
+  const leg = (hx, side) => { const s = side;
+    return `<g>${rotA([1.5*s, 12*s, 1.5*s], hx, 113, E)}
+      <line x1="${hx}" y1="113" x2="${hx}" y2="155" stroke="${SKIN}" stroke-width="12.5" stroke-linecap="round"/>
+      <line x1="${hx}" y1="155" x2="${hx}" y2="194" stroke="${SKIN}" stroke-width="9.5" stroke-linecap="round"/>
+      <rect x="${hx - 4.8}" y="186" width="9.6" height="9" rx="2" fill="#f4f4f4"/>
+      <g>${rotA([-1.5*s, -12*s, -1.5*s], hx, 197, E)}
+        <path d="M${hx - 7 - 2*s} 196 h14 q4 0 4 4 q0 4 -4 4 h-14 q-4 0 -4 -4 q0 -4 4 -4z" fill="#e2654f"/>
+        <rect x="${hx - 11 - 2*s}" y="202.5" width="22" height="2.2" rx="1" fill="#fff" opacity=".9"/>
+      </g></g>`; };
+  return `<svg viewBox="0 -22 200 232" role="img" aria-label="Animation : jumping jack">
+    <rect x="0" y="-22" width="200" height="232" rx="14" fill="#eef6fb"/>
+    <rect x="0" y="205" width="200" height="5" fill="#dfeaf2"/>
+    <ellipse cx="100" cy="206" rx="30" ry="4.5" fill="#16202b" opacity=".14"><animate attributeName="rx" values="30;22;40;22;30" keyTimes="0;.25;.5;.75;1" ${L}/></ellipse>
+    <g><animateTransform attributeName="transform" type="translate" values="0 0;0 -10;0 0;0 -10;0 0" keyTimes="0;.25;.5;.75;1" ${L}/>
+      ${leg(93, 1)}${leg(107, -1)}
+      <path d="M85 104 H115 L116.5 129 H102.5 L100 122 L97.5 129 H83.5 Z" fill="#2b3a4a"/>
+      <path d="M81 63 Q100 58.5 119 63 L117.5 86 Q116.5 98 115 108 L85 108 Q83.5 98 82.5 86 Z" fill="#0f5c8c"/>
+      <path d="M93 63 Q100 68 107 63" fill="none" stroke="#0b4b73" stroke-width="2"/>
+      ${arm(83, 1)}${arm(117, -1)}
+      <rect x="96" y="55" width="8" height="9" rx="3" fill="${SKIN}"/>
+      <ellipse cx="89.6" cy="47" rx="2.1" ry="3.6" fill="${SKIN2}"/><ellipse cx="110.4" cy="47" rx="2.1" ry="3.6" fill="${SKIN2}"/>
+      <ellipse cx="100" cy="46" rx="10.5" ry="12.5" fill="${SKIN}"/>
+      <path d="M89 46.5 C88 33.5 95.5 31 101 31 C107 31 112.6 34.5 111.2 46.5 C110.3 41.5 108 39 104.5 38.6 C101 41.2 95.5 41.8 92.3 40.2 C90.7 41.8 89.6 44 89 46.5 Z" fill="${HAIR}"/>
+      <path d="M93 43.6 q2.8 -1.1 5.4 -.2 M101.6 43.4 q2.6 -.9 5.4 .2" fill="none" stroke="${HAIR}" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M93.2 46.7 Q96 45.3 98.6 47.1 Q95.8 48.3 93.2 46.7 Z" fill="${HAIR}"/><path d="M106.8 46.7 Q104 45.3 101.4 47.1 Q104.2 48.3 106.8 46.7 Z" fill="${HAIR}"/>
+      <path d="M92.8 46.1 Q96 44.4 98.9 46.4 M107.2 46.1 Q104 44.4 101.1 46.4" fill="none" stroke="${SKIN2}" stroke-width=".8" stroke-linecap="round"/>
+      <path d="M100 48.5 v3.2 h-1.2" fill="none" stroke="${SKIN2}" stroke-width="1" stroke-linecap="round"/>
+      <path d="M96.8 54 q3.2 2.2 6.4 0" fill="none" stroke="#7a3b2e" stroke-width="1.3" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+}
+
+function svgGiclee(){
+  // vue de côté, tête à droite ; épaule S(170,84), hanche H(125,88) ; surface de l'eau y = 82
+  // Cycle de bras (2 s) : entrée/allonge → prise d'appui coude haut → traction → poussée accélérée jusqu'à la cuisse (giclée)
+  // → sortie coude en premier → retour aérien coude haut, avant-bras et main relâchés → entrée doigts en premier
+  const KT = '0;.12;.28;.40;.48;.55;.65;.75;.88;1';
+  const sh = [0, 22, 50, 118, 170, 200, 240, 275, 320, 360];   // épaule (angle du bras)
+  const el = [0, 62, 62, 42, 8, -10, -80, -145, -280, -360];   // coude (angle relatif de l'avant-bras)
+  const wr = [0, 14, 6, 0, -6, 10, 28, 30, 10, 0];             // poignet (main relâchée au retour)
+  const anim = (vals, cx, cy, begin) => `<animateTransform attributeName="transform" type="rotate" values="${vals.map(v => v + ' ' + cx + ' ' + cy).join(';')}" keyTimes="${KT}" dur="2s" begin="${begin}" repeatCount="indefinite"/>`;
+  const hand = (x, y, c, c2) => `<path d="M${x} ${y - 3.2} C${x + 5} ${y - 4} ${x + 10} ${y - 3.4} ${x + 13} ${y - 1.4} C${x + 14.4} ${y - .4} ${x + 14.4} ${y + 1} ${x + 13} ${y + 1.8} C${x + 9} ${y + 3.6} ${x + 4} ${y + 3.6} ${x} ${y + 2.8} Z" fill="${c}"/>
+      <path d="M${x + 2.5} ${y - 2.6} C${x + 4.5} ${y - 6} ${x + 7.5} ${y - 6.6} ${x + 8.6} ${y - 5.4} C${x + 9} ${y - 4.6} ${x + 7} ${y - 3.4} ${x + 6} ${y - 2.8}" fill="${c2}"/>
+      <path d="M${x + 5} ${y - .8} H${x + 12} M${x + 5} ${y + 1} H${x + 11.5}" stroke="${c2}" stroke-width=".6" stroke-linecap="round"/>`;
+  // l'épaule remonte pendant le retour (roulis) : coude haut, main hors de l'eau
+  const arm = (begin, c, c2) => `<g><animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 -11;0 -11;0 0" keyTimes="0;.5;.6;.84;1" dur="2s" begin="${begin}" repeatCount="indefinite"/><g>${anim(sh, 170, 84, begin)}
+      <line x1="170" y1="84" x2="198" y2="84" stroke="${c}" stroke-width="8.4" stroke-linecap="round"/>
+      <g>${anim(el, 198, 84, begin)}
+        <line x1="198" y1="84" x2="222" y2="84" stroke="${c}" stroke-width="7" stroke-linecap="round"/>
+        <g>${anim(wr, 222, 84, begin)}${hand(222, 84, c, c2)}</g>
+      </g></g></g>`;
+  const leg = (begin, c) => `<g>${rotA([-9, 9, -9], 125, 88, 'keyTimes="0;.5;1" calcMode="spline" keySplines=".4 0 .6 1;.4 0 .6 1" dur=".66s" begin="' + begin + '" repeatCount="indefinite"')}
+      <line x1="125" y1="88" x2="87" y2="89" stroke="${c}" stroke-width="12.5" stroke-linecap="round"/>
+      <line x1="125" y1="88" x2="104" y2="88.6" stroke="#1d2a36" stroke-width="13.6" stroke-linecap="round"/>
+      <g>${rotA([4, 22, 4], 87, 89, 'keyTimes="0;.5;1" dur=".66s" begin="' + begin + '" repeatCount="indefinite"')}
+        <line x1="87" y1="89" x2="52" y2="90" stroke="${c}" stroke-width="9" stroke-linecap="round"/>
+        <g>${rotA([-4, -16, -4], 52, 90, 'keyTimes="0;.5;1" dur=".66s" begin="' + begin + '" repeatCount="indefinite"')}
+          <path d="M54 86.6 C48 85.4 41 85.6 35.5 87.6 C33.6 88.4 33.6 90.6 35.6 91.4 C40.5 92.8 47 93.2 54 93.4 C56 91.4 56 88.6 54 86.6 Z" fill="${c}"/>
+          <path d="M36 88.4 q-1.6 1.2 0 2.4" stroke="${c === SKIN ? SKIN2 : '#b88a66'}" stroke-width=".7" fill="none"/>
+        </g></g></g>`;
+  const drop = (dx, dy, r) => `<circle cx="106" cy="80" r="${r}" fill="#1f7fbf"><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;.06;.42;1" dur="1s" begin="-.06s" repeatCount="indefinite"/><animateTransform attributeName="transform" type="translate" values="0 0;0 0;${dx} ${dy};${dx} ${dy}" keyTimes="0;.06;.42;1" dur="1s" begin="-.06s" repeatCount="indefinite"/></circle>`;
+  return `<svg viewBox="22 30 214 142" role="img" aria-label="Animation : éducatif giclée en crawl">
+    <rect x="22" y="30" width="214" height="142" rx="10" fill="#eef6fb"/>
+    ${arm('-1s', SKIN2, '#b88a66')}
+    ${leg('-.33s', SKIN2)}
+    <path d="M173 77 C156 74.5 137 76.5 123 81.5 C119.5 85 119.5 91.5 123.5 95 C140 97.5 158 96.8 171.5 92.6 C177 88.6 177.4 80.6 173 77 Z" fill="${SKIN}"/>
+    <path d="M150 77.5 C144 78.5 140 80 137 81" stroke="${SKIN2}" stroke-width="1" fill="none" opacity=".7"/>
+    ${leg('0s', SKIN)}
+    <ellipse cx="126" cy="88" rx="9.5" ry="8.4" fill="#1d2a36"/>
+    <circle cx="186.5" cy="82.5" r="10.5" fill="${SKIN}"/>
+    <path d="M176.2 81.5 A10.5 10.5 0 0 1 196.8 80.4 C192 79.4 186 79.6 176.2 81.5 Z" fill="#e2654f"/>
+    <path d="M177 83.4 L193 84" stroke="#16202b" stroke-width="1.4"/>
+    <ellipse cx="194.3" cy="84.4" rx="2.6" ry="2" fill="#16202b"/>
+    ${arm('0s', SKIN, SKIN2)}
+    <rect x="22" y="82" width="214" height="90" fill="#3fa0d8" opacity=".24"/>
+    <path d="M0 82q8-3.4 16 0t16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0 16 0" fill="none" stroke="#1f7fbf" stroke-width="1.8"><animateTransform attributeName="transform" type="translate" values="0 0;-32 0" dur="1.6s" repeatCount="indefinite"/></path>
+    ${drop(-16,-20,3.4)}${drop(-6,-26,2.8)}${drop(-26,-12,2.6)}${drop(-12,-14,2.2)}${drop(-22,-24,1.9)}${drop(-2,-16,2)}
+    <g opacity=".9"><defs><marker id="gcar" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5 0 7z" fill="#d9822b"/></marker></defs>
+      <path d="M162 152H124" stroke="#d9822b" stroke-width="2.2" stroke-dasharray="4 3" marker-end="url(#gcar)"/>
+      <text x="143" y="165" text-anchor="middle" font-size="9.5" font-weight="700" fill="#a35a14" font-family="Inter,system-ui,sans-serif">poussée accélérée : giclée</text></g>
+  </svg>`;
+}
+function svgGicleeDessus(){
+  // vue de dessus, tête à droite ; axe du corps y = 100 ; épaules (168,88) et (168,112)
+  const KT = [0, .12, .28, .40, .48, .55, .65, .75, .88, 1];
+  const E = [[196,86],[198,88],[177,84],[151,86],[141,89],[147,79],[160,68],[177,68],[191,76],[196,86]];   // coude
+  const W = [[222,88],[214,95],[178,99],[147,97],[119,92],[124,84],[146,79],[176,81],[206,86],[222,88]];   // poignet
+  const A = [0, 22, 12, 0, -6, 16, 32, 26, 10, 0];                                                       // main relâchée
+  const S = [168, 88];
+  const tip = (e, w, a, s) => { let dx = w[0] - e[0], dy = w[1] - e[1]; const n = Math.hypot(dx, dy) || 1; dx /= n; dy /= n;
+    const r = a * s * Math.PI / 180, c = Math.cos(r), si = Math.sin(r); return [w[0] + 11 * (dx * c - dy * si), w[1] + 11 * (dx * si + dy * c)]; };
+  const mir = pt => [pt[0], 200 - pt[1]];
+  const series = (s) => { // s = 1 bras du haut, -1 bras du bas (symétrique)
+    const f = s === 1 ? (pt => pt) : mir;
+    const arm = KT.map((_, i) => [f(S), f(E[i]), f(W[i])].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ')).join(';');
+    const hand = KT.map((_, i) => [f(W[i]), tip(f(E[i]), f(W[i]), A[i], s)].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ')).join(';');
+    return {arm, hand, first: arm.split(';')[0], firstH: hand.split(';')[0]};
+  };
+  const kt = KT.join(';');
+  const armSVG = (s, begin, color, layer) => { const d = series(s);
+    // layer « dessous » : toujours visible (teinte d'eau) ; layer « dessus » : visible seulement hors de l'eau (retour aérien)
+    const op = layer === 'under' ? '' : `<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.5;.53;.92;1" dur="2s" begin="${begin}" repeatCount="indefinite"/>`;
+    return `<g opacity="${layer === 'under' ? .6 : 0}">${op}
+      <polyline points="${d.first}" fill="none" stroke="${color}" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"><animate attributeName="points" values="${d.arm}" keyTimes="${kt}" dur="2s" begin="${begin}" repeatCount="indefinite"/></polyline>
+      <polyline points="${d.firstH}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round"><animate attributeName="points" values="${d.hand}" keyTimes="${kt}" dur="2s" begin="${begin}" repeatCount="indefinite"/></polyline>
+    </g>`; };
+  const leg = (y, s, begin) => { // battements : vus de dessus, la jambe s'allonge et se raccourcit légèrement
+    const pts = d => `122,${y} 86,${y + s * .8} ${52 + d},${y + s * 1.6} ${40 + d * 1.6},${y + s * 1.4}`;
+    return `<polyline points="${pts(0)}" fill="none" stroke="${SKIN}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><animate attributeName="points" values="${pts(0)};${pts(4)};${pts(0)}" keyTimes="0;.5;1" dur=".66s" begin="${begin}" repeatCount="indefinite"/></polyline>`; };
+  const splash = (y, begin) => [[-14,-6,3],[-8,-12,2.6],[-20,4,2.4],[-6,8,2.2],[-18,-12,2]].map(([dx, dy, r]) =>
+    `<circle cx="122" cy="${y}" r="${r}" fill="#ffffff"><animate attributeName="opacity" values="0;0;.95;0;0" keyTimes="0;.47;.5;.7;1" dur="2s" begin="${begin}" repeatCount="indefinite"/><animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 0;${dx} ${dy};${dx} ${dy}" keyTimes="0;.47;.5;.7;1" dur="2s" begin="${begin}" repeatCount="indefinite"/></circle>`).join('');
+  return `<svg viewBox="22 34 226 132" role="img" aria-label="Animation : éducatif giclée en crawl, vue de dessus">
+    <rect x="22" y="34" width="226" height="132" rx="10" fill="#9fd3ee"/>
+    <rect x="22" y="96.5" width="226" height="7" fill="#1b4f72" opacity=".22"/>
+    <path d="M22 44 H248 M22 156 H248" stroke="#e2654f" stroke-width="4" stroke-dasharray="8 8"/>
+    <path d="M22 44 H248 M22 156 H248" stroke="#ffffff" stroke-width="4" stroke-dasharray="8 8" stroke-dashoffset="8"/>
+    ${armSVG(1, '0s', SKIN2, 'under')}${armSVG(-1, '-1s', SKIN2, 'under')}
+    ${leg(95, -1, '0s')}${leg(105, 1, '-.33s')}
+    <path d="M104 92 H128 L127 108 H105 Z" fill="#1d2a36"/>
+    <path d="M173 86 C177.5 91 177.5 109 173 114 C160 113 140 110.5 127 108.5 C121 105 121 95 127 91.5 C140 89.5 160 87 173 86 Z" fill="${SKIN}"/>
+    <path d="M150 100 H130" stroke="${SKIN2}" stroke-width="1" opacity=".6"/>
+    <ellipse cx="187" cy="100" rx="11.5" ry="9" fill="#e2654f"/>
+    <path d="M186 91.3 Q190 100 186 108.7" stroke="#16202b" stroke-width="1.2" fill="none"/>
+    ${armSVG(1, '0s', SKIN, 'over')}${armSVG(-1, '-1s', SKIN, 'over')}
+    ${splash(88, '0s')}${splash(112, '-1s')}
+    <text x="30" y="58" font-size="8.5" font-weight="700" fill="#0b4b73" font-family="Inter,system-ui,sans-serif">VUE DE DESSUS</text>
+    <text x="30" y="148" font-size="7.6" fill="#0b4b73" font-family="Inter,system-ui,sans-serif">sortie de la main à la cuisse · retour coude écarté</text>
+  </svg>`;
+}
+
+const EXERCISES = [
+  {id:'ex-jj', sport:'strength', cat:'Cardio / échauffement', lvl:'deb', title:'Jumping jack', svg:svgJumpingJack,
+   muscles:'Mollets, cuisses, épaules · cardio',
+   desc:'Sauts sur place en ouvrant bras et jambes en même temps, puis retour à la position de départ. Idéal pour s\'échauffer ou dans un circuit.',
+   steps:['Départ debout, pieds joints, bras le long du corps','Sauter en écartant les pieds un peu plus que la largeur des épaules, bras tendus au-dessus de la tête','Revenir pieds joints et bras le long du corps, en un seul saut','Atterrir sur l\'avant du pied, genoux souples','Dos droit, respiration régulière'],
+   errors:['Atterrir sur les talons, genoux bloqués','Bras qui ne dépassent pas les épaules','Dos cambré'],
+   variants:['Sans saut (pas latéral) pour débuter ou limiter les impacts','Élastique aux chevilles','En fractionné 20" / 10"'],
+   dose:'3 × 30" · récup 30"', line:{dur:'0:30', int:'I3'}},
+  {id:'ex-giclee', sport:'swim', cat:'Éducatif crawl', lvl:'int', title:'Giclée', svg:svgGiclee,
+   muscles:'Triceps, dorsaux · fin de poussée',
+   desc:'Insister sur la fin de la poussée sous l\'eau : la main accélère vers l\'arrière et fait « gicler » l\'eau au niveau de la cuisse avant de sortir pour le retour aérien.',
+   steps:['Nager le crawl avec une grande amplitude','Pousser l\'eau loin derrière, jusqu\'à la cuisse, bras presque tendu','Accélérer la main en fin de poussée : l\'eau doit jaillir vers l\'arrière','Sortir la main paume vers la cuisse, coude en premier','Garder un battement de jambes régulier'],
+   errors:['Sortir la main trop tôt, à hauteur de la hanche','Pousser vers le haut au lieu de vers l\'arrière','Ralentir en fin de mouvement'],
+   variants:['Bras par bras (un bras nage, l\'autre reste devant)','Avec plaquettes pour mieux sentir l\'appui','Avec pull-buoy pour se concentrer sur les bras'],
+   dose:'8 × 25 m · récup 20"', line:{dist:'25', unit:'m', int:'I2'}, svg2:svgGicleeDessus}
+];
+const EX_BY = Object.fromEntries(EXERCISES.map(e => [e.id, e]));
+const exFor = txt => { const t = noAcc(txt || ''); return t ? EXERCISES.find(e => t.includes(noAcc(e.title))) : null; };
+function exCardHTML(e, withAdd){
+  return `<div class="excard">
+    <div class="exanim">${e.svg()}${e.svg2 ? '<div style="height:6px"></div>' + e.svg2() : ''}<button class="pp" data-a="expause" title="Pause / lecture">❚❚</button></div>
+    <div>
+      <h3><span style="color:${SPORTS[e.sport].color}">${icon(e.sport, 18)}</span>${esc(e.title)}</h3>
+      <div><span class="tag" style="margin:0">${esc(e.cat)}</span><span class="tag">${LVL_LABEL[e.lvl] || ''}</span><span class="tag">${esc(e.muscles)}</span></div>
+      <div class="d">${esc(e.desc)}</div>
+      <h5>Consignes</h5><ul>${e.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h5>Erreurs fréquentes</h5><ul class="ko">${e.errors.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h5>Variantes</h5><ul>${e.variants.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <div class="acts"><span class="dos">Dosage conseillé : ${esc(e.dose)}</span>
+        ${withAdd ? `<button class="btn sm primary" data-a="exadd" data-id="${e.id}">+ Ajouter à la séance ouverte</button>` : ''}</div>
+    </div>
+  </div>`;
+}
+function exercisesView(){
+  ui.xf = ui.xf || {sport:'all', q:''};
+  const q = noAcc(ui.xf.q || '');
+  const list = EXERCISES.filter(e => (ui.xf.sport === 'all' || e.sport === ui.xf.sport) && (!q || noAcc(e.title + ' ' + e.cat + ' ' + e.desc).includes(q)));
+  const s = ui.sessionId ? getSession(ui.sessionId) : null;
+  return `<div class="lfilt" style="margin-top:4px">
+      <div class="filt">${[['all','Tous'],['strength','Renfo'],['swim','Natation'],['run','CAP'],['bike','Vélo']].map(([k,l]) => `<button class="${ui.xf.sport===k?'on':''}" data-a="exsport" data-v="${k}">${k==='all'?'':icon(k,12)}${l}</button>`).join('')}</div>
+      <span class="cnt">${list.length} exercice${list.length>1?'s':''} · ${s ? `ajout dans « ${esc(s.title || SPORTS[s.sport].label)} »` : 'ouvrez une séance dans l\'onglet Semaine pour y ajouter un exercice'}</span>
+    </div>
+    <div class="exgrid">${list.map(e => exCardHTML(e, true)).join('') || '<div class="empty">Aucun exercice pour ce filtre (catalogue en construction).</div>'}</div>
+    <div class="hint">Aperçu : 2 exercices pour valider le rendu. Les exercices ajoutés à une séance affichent un bouton 🎬 qui rejoue l'animation.</div>`;
 }
 
 /* ===================== Profil & zones ===================== */
@@ -1313,14 +1738,19 @@ function addFromTemplate(aid, t, date){
   const s = {id:newId(), athleteId:aid, date, sport:t.sport, title:t.title.replace(/^[^—]+—\s*/, ''), blocks:cloneBlocks(t.blocks), bilan:emptyBilan()};
   state.sessions.push(s); return s;
 }
-function tplPickerRows(q){
-  q = noAcc(q || '');
-  const list = state.library.sessions.filter(t => !q || noAcc(t.title + ' ' + (t.desc || '') + ' ' + SPORTS[t.sport].label).includes(q));
+function tplPickerRows(){
+  const list = filterTpls(ui.pf);
   return list.map(t => `<button class="tpli" data-a="picktpl" data-id="${t.id}">
       <span style="color:${SPORTS[t.sport].color}">${icon(t.sport, 18)}</span>
-      <span><div class="tt">${esc(t.title)}</div><div class="ds">${esc(t.desc || '')}</div></span>
+      <span><div class="tt">${esc(t.title)}${tplTags(t)}</div><div class="ds">${esc(t.desc || '')}</div></span>
       <b style="text-align:right">${fmtC(tplDur(t))}</b><div class="lgraph">${sessionGraph(t, 20)}</div></button>`).join('')
     || '<div class="empty">Aucune séance type ne correspond.</div>';
+}
+function refreshPicker(focusQ){
+  const l = document.getElementById('tpllist'), f = document.getElementById('pkfilt');
+  if (l) l.innerHTML = tplPickerRows();
+  if (f && !focusQ) f.outerHTML = filtersHTML(ui.pf, 'pk', filterTpls(ui.pf).length);
+  else if (f){ const c = f.querySelector('.cnt'); const n = filterTpls(ui.pf).length; if (c) c.textContent = n + ' séance' + (n > 1 ? 's' : ''); }
 }
 function openTplPicker(mode){
   ui.pickMode = mode;
@@ -1329,17 +1759,29 @@ function openTplPicker(mode){
        <div class="sect" style="margin-top:6px">Séance vide</div>
        <div class="sportpick" style="margin:6px 0 4px">${SPORT_KEYS.map(k=>`<button style="background:${SPORTS[k].bg};border-left-color:${SPORTS[k].color};color:${SPORTS[k].color}" data-a="pick" data-v="${k}">${icon(k, 18)} ${SPORTS[k].label}</button>`).join('')}</div>
        <div class="sect">Ou partir d'une séance type</div>`;
-  openModal(`${head}<input class="tplq" id="tplq" placeholder="Rechercher (seuil, VMA, natation…)" autocomplete="off"><div class="tpllist" id="tpllist">${tplPickerRows('')}</div>
+  const cur = mode === 'replace' && ui.sessionId ? getSession(ui.sessionId) : null;
+  ui.pf = {sport: cur ? cur.sport : 'all', cat:'all', lvl:'all', dur:'all', q:''};
+  openModal(`${head}${filtersHTML(ui.pf, 'pk', filterTpls(ui.pf).length)}<div class="tpllist" id="tpllist">${tplPickerRows()}</div>
     <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="mclose">Annuler</button></div>`, true);
 }
-document.addEventListener('input', e => { if (e.target.id === 'tplq'){ const l = document.getElementById('tpllist'); if (l) l.innerHTML = tplPickerRows(e.target.value); } });
+document.addEventListener('input', e => {
+  const el = e.target; if (!el.dataset || !el.dataset.lf || el.dataset.k !== 'q') return;
+  if (el.dataset.lf === 'pk'){ ui.pf.q = el.value; refreshPicker(true); }
+  else { ui.lf.q = el.value; clearTimeout(window._lfT); window._lfT = setTimeout(() => { render(); const i = document.querySelector('[data-lf="lib"][data-k="q"]'); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); }
+});
+document.addEventListener('change', e => {
+  const el = e.target; if (!el.dataset || !el.dataset.lf || el.dataset.k === 'q') return;
+  if (el.dataset.lf === 'pk'){ ui.pf[el.dataset.k] = el.value; refreshPicker(); }
+  else { ui.lf[el.dataset.k] = el.value; render(); }
+});
 
 function libraryView(aid){
-  const f = ui.libSport || 'all', lib = state.library;
-  const tpls = lib.sessions.filter(t => f === 'all' || t.sport === f);
+  const lib = state.library;
+  ui.lf = ui.lf || {sport:'all', cat:'all', lvl:'all', dur:'all', q:''};
+  const tpls = filterTpls(ui.lf);
   const tplById = id => lib.sessions.find(t => t.id === id);
   const plans = lib.plans.map(p => {
-    const w1 = p.weeks[0], n = Math.round(p.weeks.reduce((a,w)=>a+w.length,0) / p.weeks.length);
+    const w1 = (p.weeks && p.weeks[0]) || [], n = p.weeks && p.weeks.length ? Math.round(p.weeks.reduce((a,w)=>a+w.length,0) / p.weeks.length) : 0;
     const dots = [0,1,2,3,4,5,6].map(d => { const it = w1.find(x => x[0] === d), t = it && tplById(it[1]); return `<span title="${DAYS[d]}${t?' : '+esc(t.title):''}" style="${t?'background:'+SPORTS[t.sport].color:''}"></span>`; }).join('');
     return `<div class="pcard"><b>${esc(p.title)}</b>
       <div class="d">${p.weeks.length} sem. · ~${n} séances/sem. — ${esc(p.desc)}</div>
@@ -1349,9 +1791,9 @@ function libraryView(aid){
   const rows = tpls.map(t => {
     const z = plannedZones(t), open = ui.libOpen === t.id;
     return `<div class="lrow"><div class="c" style="background:${SPORTS[t.sport].color}"></div>
-      <div><div class="tt"><span style="color:${SPORTS[t.sport].color}">${icon(t.sport, 13)}</span> ${esc(t.title)}</div><div class="ds">${esc(t.desc||'')}</div></div>
+      <div><div class="tt"><span style="color:${SPORTS[t.sport].color}">${icon(t.sport, 13)}</span> ${esc(t.title)}${tplTags(t)}</div><div class="ds">${esc(t.desc||'')}</div></div>
       <span class="du2" style="font-weight:700;text-align:right">${fmtC(tplDur(t))}</span><div class="lgraph">${sessionGraph(t, 20)}</div>
-      <div class="act dense"><button class="ib" data-a="libopen" data-id="${t.id}" title="Détail">${open?'▲':'▼'}</button><input type="date" id="libd-${t.id}" value="${todayStr()}"><button class="btn sm" data-a="addtpl" data-id="${t.id}">Ajouter</button>${me.role==='coach'?`<button class="ib red" title="Retirer de la bibliothèque" data-a="libdel" data-id="${t.id}">✕</button>`:''}</div>
+      <div class="act dense"><button class="ib" data-a="libopen" data-id="${t.id}" title="Détail">${open?'▲':'▼'}</button><input type="date" id="libd-${t.id}" value="${todayStr()}"><button class="btn sm" data-a="addtpl" data-id="${t.id}">Ajouter</button>${me.role==='coach' && !t.builtin ?`<button class="ib red" title="Retirer de la bibliothèque" data-a="libdel" data-id="${t.id}">✕</button>`:''}</div>
       ${open ? `<div class="prev">${tplPreview(t)}</div>` : ''}
     </div>`; }).join('');
   return `<div class="sect" style="margin-top:4px">Générer un plan sur mesure</div>
@@ -1359,8 +1801,8 @@ function libraryView(aid){
     <div class="sect">Plans prêts à l'emploi</div>
     <div class="pcards">${plans}</div>
     <div class="sect">Séances types</div>
-    <div class="filt">${[['all','Toutes'],...SPORT_KEYS.map(k=>[k,SPORTS[k].label])].map(([k,l])=>`<button class="${f===k?'on':''}" data-a="libsport" data-v="${k}">${l}</button>`).join('')}</div>
-    ${rows || '<div class="empty">Aucune séance type pour ce sport.</div>'}
+    ${filtersHTML(ui.lf, 'lib', tpls.length)}
+    ${rows || '<div class="empty">Aucune séance type ne correspond à ces filtres.</div>'}
     ${me.role==='coach' ? '<div class="hint">Astuce coach : le bouton ★ d\'une séance l\'ajoute à cette bibliothèque.</div>' : ''}`;
 }
 
@@ -1725,7 +2167,8 @@ document.addEventListener('click', e => {
       break; }
     case 'mvday': moveSession(s, addDays(s.date, +el.dataset.v), false); break;
     case 'dupsess': moveSession(s, addDays(s.date, 1), true); break;
-    case 'libsport': ui.libSport = el.dataset.v; render(); break;
+    case 'libsport': ui.lf = ui.lf || {}; ui.lf.sport = el.dataset.v; ui.lf.cat = 'all'; render(); break;
+    case 'pksport': ui.pf.sport = el.dataset.v; ui.pf.cat = 'all'; refreshPicker(); break;
     case 'libopen': ui.libOpen = ui.libOpen === el.dataset.id ? null : el.dataset.id; render(); break;
     case 'addtpl': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id, t = state.library.sessions.find(x => x.id === el.dataset.id);
@@ -1740,6 +2183,21 @@ document.addEventListener('click', e => {
       confirmBox(`Retirer « ${t.title} » de la bibliothèque ?`, () => { state.library.sessions = state.library.sessions.filter(x => x !== t); save(); render(); }); break; }
     case 'savetpl': state.library.sessions.push({id:'t-'+uid(), sport:s.sport, title:SPORTS[s.sport].label + ' — ' + (s.title || 'Séance'), desc:'Séance enregistrée par le coach', blocks:cloneBlocks(s.blocks), custom:true}); save(); toast('Ajoutée aux séances types'); break;
     case 'stravasync': stravaSync(); break;
+    case 'statn': ui.statN = +el.dataset.v; render(); break;
+    case 'statprev': ui.statEnd = addDays(ui.statEnd || mondayOf(todayStr()), -7); render(); break;
+    case 'statnext': ui.statEnd = addDays(ui.statEnd || mondayOf(todayStr()), 7); render(); break;
+    case 'exsport': ui.xf.sport = el.dataset.v; render(); break;
+    case 'expause': { const svgs = el.closest('.exanim').querySelectorAll('svg'), paused = svgs[0].animationsPaused();
+      svgs.forEach(s => paused ? s.unpauseAnimations() : s.pauseAnimations()); el.textContent = paused ? '❚❚' : '▶'; break; }
+    case 'exshow': { const ex = EX_BY[el.dataset.id]; if (ex) openModal(exCardHTML(ex, false) + '<div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="mclose">Fermer</button></div>', true); break; }
+    case 'exadd': {
+      const ex = EX_BY[el.dataset.id], t = ui.sessionId ? getSession(ui.sessionId) : null;
+      if (!t){ toast('Ouvrez d\'abord une séance dans l\'onglet Semaine'); break; }
+      if (!canEdit(t)) break;
+      const st = step(ex.line.dur || '', 'Z1', {autre: ex.title}); setStepInt(st, ex.line.int);
+      if (ex.line.dist){ st.mode = 'dist'; st.dist = ex.line.dist; st.unit = ex.line.unit; }
+      if (!t.blocks.length) t.blocks.push(block('Corps de séance', 1, []));
+      t.blocks[t.blocks.length - 1].steps.push(st); save(); toast(`« ${ex.title} » ajouté à la séance`); break; }
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
     case 'genapply': {
       const aid = me.role === 'coach' ? ui.athleteId : me.id, g = genDefaults(), plan = generatePlan(g), start = mondayOf(g.start || nextMonday());
