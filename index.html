@@ -1289,7 +1289,8 @@ function detailHTML(s){
           <td><input data-f="bz" data-z="${z}" data-k="pw" value="${esc(bl.zones[z].pw)}" ${ro}></td></tr>`).join('')}</tbody>
         <tfoot><tr id="bztot">${bilanTotals(s)}</tr></tfoot>
       </table>
-      ${ro ? '' : `<button class="lk" data-a="prefill">Recharger les données prévues</button>`}
+      ${ro ? '' : `<button class="lk" data-a="prefill">Recharger les données prévues</button>
+        <label class="lk" style="cursor:pointer;display:inline-block" title="Remplit ce bilan à partir d'un fichier de montre ou de Strava">📂 Importer un fichier GPX / TCX<input type="file" id="bilanfile" accept=".gpx,.tcx" style="display:none"></label>`}
       <div class="lab">RPE</div>
       <div class="rp10">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${String(bl.rpe)===String(n)?'on':''}" data-a="rpe" data-v="${n}" ${ro}>${n}</button>`).join('')}</div>
       <div class="lab">Commentaire</div>
@@ -1931,7 +1932,7 @@ function paceTxt(sport, sec, dist){
 }
 function hav(a, b){ const R = 6371000, r = x => x*Math.PI/180, dl = r(b.lat-a.lat), dn = r(b.lon-a.lon);
   const x = Math.sin(dl/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
-function parseTrack(xml, kind, u, defSport){
+function parseTrack(xml, kind, u, defSport, force){
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   const all = (n, tag) => Array.from(n.getElementsByTagNameNS('*', tag));
   const txt = (n, tag) => { const e = all(n, tag)[0]; return e ? e.textContent.trim() : ''; };
@@ -1946,7 +1947,7 @@ function parseTrack(xml, kind, u, defSport){
   }
   pts = pts.filter(p => !isNaN(p.t)).sort((a,b) => a.t - b.t);
   if (pts.length < 2) throw new Error('aucun point horodaté');
-  const sport = stravaSport(sportRaw) || defSport;
+  const detected = stravaSport(sportRaw), sport = force || detected || defSport;
   const z = emptyAcc(); let noHr = 0, dur = 0;
   for (let i = 0; i < pts.length - 1; i++){
     const a = pts[i], b = pts[i+1], dt = (b.t - a.t) / 1000;
@@ -1960,7 +1961,7 @@ function parseTrack(xml, kind, u, defSport){
   }
   const date = ymd(new Date(pts[0].t));
   if (!name || /^\d{4}-\d{2}-\d{2}T/.test(name)) name = SPORTS[sport].label + ' ' + longDate(date);
-  return [{name, date, sport, dur, z, noHr: noHr > dur*0.5}];
+  return [{name, date, sport, dur, z, noHr: noHr > dur*0.5, detected}];
 }
 function parseCSV(text){
   const rows = []; let row = [], f = '', q = false;
@@ -1994,6 +1995,40 @@ function parseStravaCSV(text, u){
     return {name: r[iN] || '', date: toYmd(r[iD]), sport: stravaSport(r[iT]), rawType: r[iT], dur, hr: +r[iH] || 0, pw: +r[iW] || 0, dist: spd ? spd*dur : 0};
   });
 }
+function bilanFromAct(act){
+  const bilan = emptyBilan(); bilan.validated = true; bilan.validatedAt = new Date().toISOString();
+  ZONES.forEach(k => { const a = act.z[k]; if (!a.t) return;
+    bilan.zones[k].time = Math.floor(a.t/3600) + ':' + String(Math.round((a.t%3600)/60)).padStart(2,'0');
+    bilan.zones[k].fc = a.hrN ? String(Math.round(a.hr/a.hrN)) : '';
+    bilan.zones[k].pw = act.sport === 'bike' && a.pwN ? Math.round(a.pw/a.pwN) + ' W' : paceTxt(act.sport, a.t, a.dist);
+  });
+  return bilan;
+}
+// Import d'un fichier GPX / TCX directement dans le bilan de la séance ouverte
+async function importIntoSession(file){
+  const s = ui.sessionId ? getSession(ui.sessionId) : null;
+  if (!s || !canEdit(s)) return;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext !== 'gpx' && ext !== 'tcx'){ toast('Format non pris en charge : choisissez un fichier .gpx ou .tcx'); return; }
+  try {
+    const u = getUser(s.athleteId);
+    // zones FC, allures et puissance calculées pour le sport de la séance
+    const act = parseTrack(await file.text(), ext, u, s.sport, s.sport)[0];
+    if (!act || act.dur < 60){ toast('Fichier sans données exploitables (trop court ou sans horodatage)'); return; }
+    const detected = act.detected;
+    const keep = {rpe: s.bilan.rpe, comment: s.bilan.comment};
+    const b = bilanFromAct(act);
+    const dist = ZONES.reduce((a, k) => a + (act.z[k].dist || 0), 0);
+    const note = `Fichier ${file.name} : ${fmtC(act.dur)}${dist ? ' · ' + (dist >= 1000 ? (dist/1000).toFixed(2).replace('.', ',') + ' km' : Math.round(dist) + ' m') : ''}${act.noHr ? ' (FC absente : temps placé en Z1)' : ''}`;
+    b.rpe = keep.rpe; b.comment = [keep.comment, note].filter(Boolean).join('\n');
+    s.bilan = b; save(); render();
+    const warn = [];
+    if (act.date && act.date !== s.date) warn.push('date du fichier : ' + longDate(act.date));
+    if (detected && detected !== s.sport) warn.push('sport du fichier : ' + SPORTS[detected].label);
+    toast('Bilan rempli et séance validée' + (warn.length ? ' — attention, ' + warn.join(', ') : ''));
+  } catch(err){ toast('Fichier illisible : ' + err.message); }
+}
+
 function applyActivity(aid, act, report){
   const u = getUser(aid);
   if (!act.date){ report.push({...act, result:'Date illisible, ignorée', cls:'warn'}); return; }
@@ -2001,12 +2036,7 @@ function applyActivity(aid, act, report){
   if (act.dur < 60){ report.push({...act, result:'Trop courte, ignorée', cls:'warn'}); return; }
   const zones = {}; ZONES.forEach(k => zones[k] = {t: act.z[k].t});
   if (state.sessions.some(s => s.athleteId === aid && s.date === act.date && s.sport === act.sport && isDone(s) && (s.title === act.name || (s.bilan.comment || '').includes(act.name)))){ report.push({...act, zones, result:'Déjà importée', cls:'warn'}); return; }
-  const bilan = emptyBilan(); bilan.validated = true; bilan.validatedAt = new Date().toISOString();
-  ZONES.forEach(k => { const a = act.z[k]; if (!a.t) return;
-    bilan.zones[k].time = Math.floor(a.t/3600) + ':' + String(Math.round((a.t%3600)/60)).padStart(2,'0');
-    bilan.zones[k].fc = a.hrN ? String(Math.round(a.hr/a.hrN)) : '';
-    bilan.zones[k].pw = act.sport === 'bike' && a.pwN ? Math.round(a.pw/a.pwN) + ' W' : paceTxt(act.sport, a.t, a.dist);
-  });
+  const bilan = bilanFromAct(act);
   const note = 'Importé de Strava : ' + act.name + (act.noHr ? ' (FC absente : temps placé en Z1)' : act.summary ? ' (zone selon FC moyenne)' : '');
   let target = state.sessions.find(s => s.athleteId === aid && s.date === act.date && s.sport === act.sport && !isDone(s));
   let result;
@@ -2393,6 +2423,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if (el.dataset && el.dataset.hr){ const aid = me.role === 'coach' ? ui.athleteId : me.id, u = getUser(aid); const v = parseInt(el.value); if (v > 0){ u.hr[el.dataset.hr] = v; save(); } }
   if (el.id === 'stravaFile' && el.files.length) handleFiles(Array.from(el.files));
+  if (el.id === 'bilanfile' && el.files.length){ importIntoSession(el.files[0]); el.value = ''; }
   if (el.id === 'defSport') ui.defSport = el.value;
 });
 document.addEventListener('change', e => {
