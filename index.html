@@ -491,6 +491,20 @@ table.it td.na{color:#c3ccd5}
 .bilanpane>h4{font-size:.95rem!important;color:#1d2a36!important;text-transform:none!important;letter-spacing:0!important;margin-bottom:6px!important}
 .bilanpane table.bz input{background:#fff}
 @media (max-width:900px){.zsess .detail{grid-template-columns:1fr}.zrecap .wkb{grid-template-columns:1fr}}
+.mic{font-size:.72rem;margin-right:2px;filter:grayscale(.3)}
+.mic.new{filter:none;position:relative}
+.mic.new:after{content:"";position:absolute;top:-2px;right:-3px;width:7px;height:7px;border-radius:50%;background:#e2453c;border:1px solid #fff}
+.bell{position:relative}
+.thread{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto;margin:4px 0}
+.msg{background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:.8rem;max-width:92%;color:#1d2a36;font-weight:400}
+.msg.me{align-self:flex-end;background:#e8f1f8;border-color:#c8dcec}
+.msg .mh{display:flex;gap:8px;align-items:baseline;font-size:.72rem}.msg .mh small{color:var(--muted)}
+.msgnew{display:flex;gap:6px;align-items:flex-end;margin-top:4px}.msgnew textarea{flex:1;min-height:38px}
+.nlist{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+.nrow{display:flex;gap:10px;align-items:center;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font:inherit;width:100%}
+.nrow:hover{border-color:#1f6fa8;background:#f4f9fd}
+.ntxt{flex:1;font-size:.84rem}.nbody{display:block;color:#3a4a58;margin-top:2px;font-size:.8rem}
+.ngo{color:#1f6fa8;font-weight:600;font-size:.8rem;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -1103,6 +1117,7 @@ async function loadAll(){
     sb.from('library_plans').select('*').order('id')]);
   const err = p.error || s.error || ls.error || lp.error; if (err) throw err;
   state = {users:p.data.map(userFrom), sessions:s.data.map(sessFrom), library:{sessions:ls.data.map(libSFrom), plans:lp.data.map(libPFrom)}};
+  try { const mg = await sb.from('messages').select('*'); state.messages = mg.error ? [] : (mg.data || []).map(msgFrom); } catch(e){ state.messages = []; }
   try { const sh = await sb.from('shares').select('*'); state.shares = sh.error ? [] : (sh.data || []).map(r => ({ownerId:r.owner_id, viewerId:r.viewer_id})); } catch(e){ state.shares = []; }
   me = getUser(me.id) || me;
   // le catalogue est intégré au site : les anciennes copies en base sont retirées, les séances perso gardées
@@ -1284,6 +1299,7 @@ function render(){
     ${me.role === 'coach' ? `<button class="btn dark sm" data-a="home">Athlètes</button><button class="btn dark sm" data-a="accounts">Comptes${pendingCount() ? `<span class="badge">${pendingCount()}</span>` : ''}</button>` : ''}
     <div class="spacer"></div>
     <span class="who" id="savestate" style="font-size:.75rem;opacity:.6"></span>
+    <button class="btn dark sm bell" id="bell" data-a="notifs" title="Notifications">${bellHTML()}</button>
     <div class="who">${esc(me.name)} · ${me.role === 'coach' ? 'Coach' : 'Adhérent'}</div>
     <button class="btn dark sm" data-a="logout">Déconnexion</button>
   </div></div>
@@ -1542,6 +1558,90 @@ function exportFit(s){
     <div style="text-align:right"><button class="btn primary" data-a="mclose">OK</button></div>`);
 }
 
+/* ===================== Messages et notifications ===================== */
+// Chaque séance peut porter des messages : le commentaire du bilan écrit par l'athlète (kind « bilan »)
+// et les messages échangés ensuite. Le destinataire reçoit une notification avec un lien vers la séance.
+const msgsOf = sid => ((state && state.messages) || []).filter(m => m.sessionId === sid).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+const isAthleteMsg = m => m.authorId === m.athleteId;
+function iAmRecipient(m){
+  if (!me) return false;
+  if (m.athleteId === me.id) return !isAthleteMsg(m);
+  return isAthleteMsg(m) && (me.role === 'coach' || followedIds().includes(m.athleteId));
+}
+const unreadMsgs = () => ((state && state.messages) || []).filter(m => !m.seen && iAmRecipient(m) && getSession(m.sessionId))
+  .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+const hasUnread = sid => unreadMsgs().some(m => m.sessionId === sid);
+function bellHTML(){ const n = unreadMsgs().length; return `🔔${n ? `<span class="badge">${n}</span>` : ''}`; }
+function chipMsgIcon(s){
+  const l = msgsOf(s.id); if (!l.length) return '';
+  return `<span class="mic ${hasUnread(s.id) ? 'new' : ''}" title="${l.length} message${l.length > 1 ? 's' : ''}${hasUnread(s.id) ? ' (non lu)' : ''}">💬</span>`;
+}
+function msgTimeTxt(iso){ const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}); }
+// Fil de messages sous le bilan
+function threadHTML(s){
+  const l = msgsOf(s.id).filter(m => m.kind !== 'bilan'), mine = s.athleteId === me.id, a = getUser(s.athleteId);
+  return `<div class="lab">Messages${l.length ? ' (' + l.length + ')' : ''}</div>
+    ${l.length ? `<div class="thread">${l.map(m => { const au = getUser(m.authorId);
+      return `<div class="msg ${m.authorId === me.id ? 'me' : ''}"><div class="mh"><b>${esc(au ? au.name : '?')}</b><small>${msgTimeTxt(m.createdAt)}</small></div><div>${esc(m.body).replace(/\n/g, '<br>')}</div></div>`; }).join('')}</div>` : ''}
+    <div class="msgnew"><textarea id="msgtxt" rows="2" placeholder="${mine ? 'Message pour votre coach…' : 'Message pour ' + esc(a ? a.name : 'l\'athlète') + '…'}"></textarea>
+      <button class="btn sm primary" data-a="sendmsg">Envoyer</button></div>`;
+}
+// Liste des notifications
+function openNotifs(){
+  const l = unreadMsgs();
+  openModal(`<h3>🔔 Notifications</h3>
+    ${l.length ? `<div class="nlist">${l.map(m => { const s = getSession(m.sessionId), au = getUser(m.authorId);
+      return `<button class="nrow" data-a="gomsg" data-id="${m.id}">
+        <span class="nicon" style="color:${SPORTS[s.sport].color}">${icon(s.sport, 16)}</span>
+        <span class="ntxt"><b>${esc(au ? au.name : '?')}</b> ${m.kind === 'bilan' ? 'a commenté son bilan' : 'vous a écrit'} · <span class="ztxt">${esc(s.title || SPORTS[s.sport].label)}, ${longDate(s.date)}</span>
+          <span class="nbody">${esc(String(m.body).slice(0, 140))}${String(m.body).length > 140 ? '…' : ''}</span></span>
+        <span class="ngo">Ouvrir ›</span></button>`; }).join('')}</div>
+      <div style="text-align:right;margin-top:8px"><button class="btn sm" data-a="allseen">Tout marquer comme lu</button> <button class="btn sm" data-a="mclose">Fermer</button></div>`
+    : `<p class="ztxt">Aucune nouvelle notification.</p><div style="text-align:right"><button class="btn sm" data-a="mclose">Fermer</button></div>`}`);
+}
+// Ouvre la séance concernée
+function goToSession(sid){
+  const s = getSession(sid); if (!s) return;
+  if (me.role === 'coach'){ ui.view = 'athlete'; ui.athleteId = s.athleteId; }
+  else ui.viewAs = s.athleteId === me.id ? null : s.athleteId;
+  ui.tab = 'agenda'; ui.week = mondayOf(s.date); ui.sessionId = s.id;
+  markSeen(s.id); render();
+  setTimeout(() => { const b = document.querySelector('.bilanpane'); if (b) b.scrollIntoView({behavior:'smooth', block:'center'}); }, 50);
+}
+function upsertBilanMsg(s){
+  const body = (s.bilan.comment || '').trim(), id = 'c-' + s.id;
+  state.messages = state.messages || [];
+  let m = state.messages.find(x => x.id === id);
+  if (!body){ if (m){ state.messages = state.messages.filter(x => x !== m); persistMsgDelete(m); } return; }
+  if (m && m.body === body) return;
+  if (!m){ m = {id, sessionId:s.id, athleteId:s.athleteId, authorId:me.id, kind:'bilan'}; state.messages.push(m); }
+  Object.assign(m, {body, seen:false, createdAt:new Date().toISOString()});
+  persistMsg(m);
+}
+function sendMsg(s, text){
+  const m = {id:newId(), sessionId:s.id, athleteId:s.athleteId, authorId:me.id, kind:'msg', body:text, seen:false, createdAt:new Date().toISOString()};
+  state.messages = state.messages || []; state.messages.push(m); persistMsg(m);
+}
+document.addEventListener('change', e => {
+  const el = e.target; if (el.dataset.f !== 'bcomment' || !ui.sessionId) return;
+  const s = getSession(ui.sessionId); if (s && s.athleteId === me.id) upsertBilanMsg(s);
+});
+
+const msgFrom = r => ({id:r.id, sessionId:r.session_id, athleteId:r.athlete_id, authorId:r.author_id, kind:r.kind, body:r.body, seen:!!r.seen, createdAt:r.created_at});
+const msgTo = m => ({id:m.id, session_id:m.sessionId, athlete_id:m.athleteId, author_id:m.authorId, kind:m.kind, body:m.body, seen:!!m.seen, created_at:m.createdAt});
+function persistMsg(m){ sb.from('messages').upsert(msgTo(m)).then(({error}) => { if (error) toast('Message non enregistré : ' + error.message); }); }
+function persistMsgDelete(m){ sb.from('messages').delete().eq('id', m.id).then(() => {}); }
+function markSeen(sid){
+  const ids = ((state && state.messages) || []).filter(m => (!sid || m.sessionId === sid) && !m.seen && iAmRecipient(m)).map(m => { m.seen = true; return m.id; });
+  if (ids.length) sb.from('messages').update({seen:true}).in('id', ids).then(() => {});
+}
+// relève des nouveaux messages toutes les minutes
+async function refreshMsgs(){
+  const r = await sb.from('messages').select('*'); if (r.error) return;
+  state.messages = r.data.map(msgFrom);
+  const b = document.getElementById('bell'); if (b) b.innerHTML = bellHTML();
+}
+setInterval(() => { if (me && state && !document.hidden) refreshMsgs().catch(() => {}); }, 60000);
 function athleteView(){
   const aid = curAid();
   const a = getUser(aid);
@@ -1657,7 +1757,7 @@ function sessOptsHTML(s, ro){
 function chipInner(s){
   const sp = SPORTS[s.sport], done = isDone(s);
   return `${canEdit(s) ? `<span class="vchk ${done?'on':''}" title="${done?'Séance validée — cliquer pour annuler':'Valider la séance réalisée'}" data-a="validate" data-id="${s.id}">✓</span>` : ''}<div class="t" style="color:${sp.color}">${icon(s.sport, 12)}${esc(s.title || sp.label)}</div>
-    <div class="m"><span>${s.optional ? '<span class="fac" title="Séance facultative">☆</span>' : '<span class="obl" title="Séance obligatoire">★</span>'} ${fmtC(sum(plannedZones(s)))}</span>${done ? `<span class="done">✓ ${fmtC(sum(realZones(s)))}</span>` : ''}</div>`;
+    <div class="m"><span>${s.optional ? '<span class="fac" title="Séance facultative">☆</span>' : '<span class="obl" title="Séance obligatoire">★</span>'} ${chipMsgIcon(s)}${fmtC(sum(plannedZones(s)))}</span>${done ? `<span class="done">✓ ${fmtC(sum(realZones(s)))}</span>` : ''}</div>`;
 }
 function weekMini(aid){
   const real = weekTable(aid, ui.week, 'realise'), plan = weekTable(aid, ui.week, 'prevu');
@@ -1806,7 +1906,8 @@ function detailHTML(s){
       <div class="lab">RPE</div>
       <div class="rp10">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${String(bl.rpe)===String(n)?'on':''}" data-a="rpe" data-v="${n}" ${ro}>${n}</button>`).join('')}</div>
       <div class="lab">Commentaire</div>
-      <textarea rows="3" data-f="bcomment" placeholder="Sensations, remarques…" ${ro}>${esc(bl.comment)}</textarea>
+      <textarea rows="3" data-f="bcomment" placeholder="Sensations, remarques… (votre coach est prévenu)" ${ro}>${esc(bl.comment)}</textarea>
+      ${threadHTML(s)}
       ${ro ? '' : isDone(s)
         ? `<div class="vok"><span>✓ Séance réalisée${bl.validatedAt ? ' · validée le ' + new Date(bl.validatedAt).toLocaleDateString('fr-FR') : ''}</span><button data-a="validate" data-id="${s.id}">Annuler</button></div>`
         : `<button class="vbtn" data-a="validate" data-id="${s.id}">✓ Valider la séance réalisée</button>`}
@@ -2903,7 +3004,13 @@ document.addEventListener('click', e => {
     case 'mprev': ui.month = shiftMonth(ui.month, -1); render(); break;
     case 'mnext': ui.month = shiftMonth(ui.month, 1); render(); break;
     case 'mtoday': ui.month = currentMonth(); render(); break;
-    case 'open': ui.sessionId = el.dataset.id; render(); break;
+    case 'open': ui.sessionId = el.dataset.id; markSeen(el.dataset.id); render(); break;
+    case 'notifs': openNotifs(); break;
+    case 'gomsg': { const m = (state.messages || []).find(x => x.id === el.dataset.id); closeModal(); if (m) goToSession(m.sessionId); break; }
+    case 'allseen': markSeen(null); closeModal(); render(); break;
+    case 'sendmsg': {
+      const t = ((document.getElementById('msgtxt') || {}).value || '').trim(); if (!t || !s) break;
+      sendMsg(s, t); render(); toast('Message envoyé : ' + (s.athleteId === me.id ? 'votre coach' : getUser(s.athleteId).name) + ' sera notifié'); break; }
     case 'back': ui.view = me.role === 'coach' ? 'athlete' : 'home'; ui.sessionId = null; render(); break;
     case 'stab': ui.stab = el.dataset.v; render(); break;
     case 'new': pendingDate = el.dataset.d; openTplPicker('new'); break;
