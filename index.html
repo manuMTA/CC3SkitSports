@@ -505,6 +505,21 @@ table.it td.na{color:#c3ccd5}
 .nrow:hover{border-color:#1f6fa8;background:#f4f9fd}
 .ntxt{flex:1;font-size:.84rem}.nbody{display:block;color:#3a4a58;margin-top:2px;font-size:.8rem}
 .ngo{color:#1f6fa8;font-weight:600;font-size:.8rem;white-space:nowrap}
+.kstrip{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;font-size:.78rem;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px 10px;margin:6px 0}
+.kstrip b{color:var(--ink);font-family:"Barlow Semi Condensed";font-size:1.05rem;margin-left:3px}
+.mtop .kstrip{margin:0}
+.stdet{margin-top:4px}.stdet summary{cursor:pointer;font-size:.78rem;color:var(--muted);font-weight:600}
+.stdet table.stt th,.stdet table.stt td{padding:2px 7px}
+.mtop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 6px}
+.mtop .weeknav{margin:0}
+.mgrid{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:8px;align-items:start}
+.mz table.cmp{font-size:.72rem;padding:2px;border-spacing:1px}
+.mz table.cmp th,.mz table.cmp td{padding:1px 4px;line-height:1.35}
+.mz .zchip{padding:0 6px;font-size:.68rem}
+.mweeks{padding:6px 10px}.mweeks .wk{padding:1px 0;font-size:.76rem}.mweeks .wk .bar{height:11px}
+@media (max-width:800px){.mgrid{grid-template-columns:1fr}}
+.pmx button.plock{opacity:.5;background:#f4f6f8}
+.ffree{background:#2f9461;color:#fff;border-radius:999px;padding:0 6px;font-size:.62rem;font-weight:600;margin-left:4px}
 </style>
 </head>
 <body>
@@ -1373,11 +1388,11 @@ function subNav(key, opts){
 /* ===================== Accès : gratuit, Standard, option partage ===================== */
 // Gratuit : agenda, séances simples, bilans, statistiques, import, profil + 9 séances classiques.
 // Standard (PRICE par mois) : tout. Option partage : un autre utilisateur (son coach) accède à l'entraînement.
-const PRICE = '15 €', PRICE_SHARE = '';  // prix de l'option partage : à renseigner
+const PRICE = '15 €', PRICE_SHARE = '';  // tarifs (non affichés dans l'interface)
 const FEATURES = {
   agenda:'Agenda et séances', simple:'Séances simples (temps Z1, Z2, Z3)', bilan:'Bilans séance, semaine et mois', stats:'Statistiques et évolution', fileImport:'Import GPX / TCX', profil:'Profil et zones',
-  freeLib:'9 séances classiques (CAP, vélo, natation)',
-  detail:'Séances détaillées (blocs, intensités, graphique)', library:'Toutes les séances types (217)', plans:'Plans types CAP, trail, distance indéfinie, challenge, vélo, natation', plansTri:'Plans triathlon XS, S, M, L, XXL',
+  freeLib:'9 séances classiques et 3 plans (5 km, 10 km, triathlon XS débutant)',
+  detail:'Séances détaillées (blocs, intensités, graphique)', library:'Toutes les séances types (217)', plans:'Tous les plans types (CAP, trail, distance indéfinie, challenge, vélo, natation)', plansTri:'Plans triathlon XS, S, M, L, XXL',
   customLib:'Enregistrer ses séances et plans types', exercises:'Exercices animés', watch:'Export des séances vers montre GPS (.fit)', stravaAuto:'Connexion Strava automatique'
 };
 const FREE_FEATURES = ['agenda','simple','bilan','stats','fileImport','profil','freeLib'];
@@ -1403,10 +1418,10 @@ const statusBadge = u => { const st = subStatus(u); return `<span class="stbadge
 function refreshLicense(){ const st = subStatus(me); LIC = licFor(st !== 'gratuit', {status:st, share:hasShareOpt(me)}); }
 const has = f => LIC.features.has(f);
 function lockBox(f, compact){
-  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Inclus dans l'abonnement Standard (${PRICE} par mois).${me && me.role !== 'coach' ? ' <a href="#" data-a="upgrade" data-v="standard">S\'abonner</a>' : ''}</span></div>`;
+  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Inclus dans l'abonnement Standard.${me && me.role !== 'coach' ? ' <a href="#" data-a="upgrade" data-v="standard">S\'abonner</a>' : ''}</span></div>`;
 }
 const ACTION_FEAT = {newdetail:'detail', badd:'detail', todetail:'detail', savetpl:'customLib', saveplan:'customLib',
-  stravasync:'stravaAuto', stravalink:'stravaAuto', expick0:'exercises', exshow:'exercises', exportfit:'watch'};
+  applyplan:'plans', stravasync:'stravaAuto', stravalink:'stravaAuto', expick0:'exercises', exshow:'exercises', exportfit:'watch'};
 function markLocked(){
   document.querySelectorAll('[data-a]').forEach(el => {
     const f = ACTION_FEAT[el.dataset.a];
@@ -1421,16 +1436,16 @@ const trialBar = () => '';
 // Comparatif gratuit / Standard
 function offerTable(st){
   const rows = Object.keys(FEATURES).map(f => `<tr><td>${esc(FEATURES[f])}</td><td style="text-align:center" class="${st === 'gratuit' ? 'curcol' : ''}">${FREE_FEATURES.includes(f) ? '✓' : '—'}</td><td style="text-align:center" class="${st !== 'gratuit' ? 'curcol' : ''}">✓</td></tr>`).join('');
-  return `<table class="rep lictab"><thead><tr><th></th><th style="text-align:center">Gratuit</th><th style="text-align:center">Standard · ${PRICE}/mois</th></tr></thead><tbody>${rows}
-    <tr><td>Option : partager son entraînement avec un coach</td><td colspan="2" style="text-align:center">en option${PRICE_SHARE ? ' · ' + PRICE_SHARE : ''}</td></tr></tbody></table>`;
+  return `<table class="rep lictab"><thead><tr><th></th><th style="text-align:center">Gratuit</th><th style="text-align:center">Standard</th></tr></thead><tbody>${rows}
+    <tr><td>Option : partager son entraînement avec un coach</td><td colspan="2" style="text-align:center">en option</td></tr></tbody></table>`;
 }
 // Écran « Abonnement » (Paramétrage)
 function aboView(aid){
   const u = getUser(aid), st = subStatus(u), mine = aid === me.id && me.role !== 'coach';
   return `<div class="pane dense"><h4>Abonnement</h4>
     <div class="licrow"><span>${mine ? 'Votre accès' : esc(u.name)} : ${statusBadge(u)} ${st === 'standard' && u.licenseUntil ? `<span class="ztxt">jusqu'au ${frDate(u.licenseUntil)}</span>` : ''}</span>
-      ${mine && st === 'gratuit' ? `<button class="btn primary" data-a="upgrade" data-v="standard">Passer en Standard : ${PRICE} / mois</button>` : ''}
-      ${mine && !u.shareOption ? `<button class="btn" data-a="upgrade" data-v="share">Ajouter l'option partage${PRICE_SHARE ? ' · ' + PRICE_SHARE : ''}</button>` : ''}
+      ${mine && st === 'gratuit' ? `<button class="btn primary" data-a="upgrade" data-v="standard">Passer en Standard</button>` : ''}
+      ${mine && !u.shareOption ? `<button class="btn" data-a="upgrade" data-v="share">Ajouter l'option partage</button>` : ''}
       ${mine && (st === 'standard' || u.shareOption) && CFG.portailAbonnement ? `<a class="btn" href="${esc(CFG.portailAbonnement)}" target="_blank" rel="noopener">Gérer ou résilier</a>` : ''}
       ${!mine && me.role === 'coach' && u.role !== 'coach' ? '<span class="ztxt">L\'accès se modifie dans l\'écran Comptes.</span>' : ''}</div>
     <div style="margin-top:8px">${offerTable(st)}</div>
@@ -1467,7 +1482,7 @@ function viewAsBar(){
 }
 function shareView(){
   if (!hasShareOpt(me)) return `<div class="pane dense"><h4>Partager avec un coach</h4>
-    <div class="lockbox"><b>🔒 Option partage</b><span>Permet à votre coach (un autre utilisateur de l'application) de voir et modifier votre plan d'entraînement, vos séances et vos bilans.${PRICE_SHARE ? ' ' + PRICE_SHARE + '.' : ''} <a href="#" data-a="upgrade" data-v="share">Ajouter l'option</a></span></div></div>`;
+    <div class="lockbox"><b>🔒 Option partage</b><span>Permet à votre coach (un autre utilisateur de l'application) de voir et modifier votre plan d'entraînement, vos séances et vos bilans. <a href="#" data-a="upgrade" data-v="share">Ajouter l'option</a></span></div></div>`;
   const v = myViewers();
   return `<div class="pane dense"><h4>Partager avec un coach</h4>
     <p class="ztxt" style="margin:0 0 6px">La personne doit avoir un compte. Elle verra et pourra modifier votre agenda, vos séances et vos bilans. Vous pouvez retirer l'accès à tout moment.</p>
@@ -1654,10 +1669,10 @@ function athleteView(){
   let body;
   if (ui.tab === 'stats'){
     if (!has('stats') && !ui.ssub) ui.ssub = 'mois';
-    body = subNav('ssub', [['evol','Évolution'],['mois','Bilan du mois']]) + (ui.ssub === 'mois' ? monthNav() + monthBilanView(aid) : (has('stats') ? statsView(aid) : lockBox('stats')));
+    body = subNav('ssub', [['evol','Évolution'],['mois','Bilan du mois']]) + (ui.ssub === 'mois' ? monthBilanView(aid) : (has('stats') ? statsView(aid) : lockBox('stats')));
   } else if (ui.tab === 'biblio'){
     body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices']]) +
-      (ui.bsub === 'plans' ? (has('plans') ? libPlansView(aid) : lockBox('plans')) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? '' : lockBox('library', true)) + libSessionsView(aid));
+      (ui.bsub === 'plans' ? libPlansView(aid) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? '' : lockBox('library', true)) + libSessionsView(aid));
   } else if (ui.tab === 'param'){
     body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement'],['partage','Partage'],['compte','Mon compte']]) + (ui.psub === 'partage' ? (aid === me.id ? shareView() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le partage se règle depuis le compte de la personne.</p></div>') : (ui.psub === 'compte' ? (aid === me.id ? pwFormHTML() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le mot de passe se change depuis le compte de la personne.</p></div>') : ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid)));
   } else body = weekPage(aid);
@@ -1715,17 +1730,18 @@ function monthBilanView(aid){
   const spTot = (tt, sp) => ZONES.reduce((x,z)=>x+tt[z][sp],0);
   const maxW = Math.max(1, ...weeks.map(w => tTotal(w.r.t)));
   const lbl = (a,b) => `${parseYmd(a).getDate()}–${parseYmd(b).getDate()} ${MONTHS[parseYmd(b).getMonth()]}`;
-  return `${modeSwitch()}
-    <div class="synth">
-      ${zoneTableHTML(t)}
-      ${sideHTML([['Total du mois', fmtC(tTotal(t)), true], ['Jours off', off], ['Séances', seancesTxt(list)], ['Moy. / semaine', fmtC(tTotal(t) / (parseYmd(end).getDate()/7))]])}
+  return `<div class="mtop">${monthNav()}
+      <div class="seg"><button class="${ui.mode==='realise'?'on':''}" data-a="mode" data-v="realise">Réalisé</button><button class="${ui.mode==='prevu'?'on':''}" data-a="mode" data-v="prevu">Prévu</button></div>
+      <div class="kstrip"><span>Total <b>${fmtC(tTotal(t))}</b></span><span>Séances <b>${seancesTxt(list)}</b></span><span>Jours off <b>${off}</b></span><span>Moy. / sem. <b>${fmtC(tTotal(t) / (parseYmd(end).getDate()/7))}</b></span></div>
     </div>
-    <div class="sect">Par semaine</div>
-    <div class="side" style="max-width:832px">
-      <div class="wk wkhead"><span>Semaine</span><span>${SPORT_KEYS.map(k=>`<span class="dot" style="background:${SPORTS[k].color}"></span>${SPORTS[k].label}`).join(' &nbsp;')}</span><span style="text-align:right">Total</span><span style="text-align:right">Off</span></div>
-      ${weeks.map(w => { const tot = tTotal(w.r.t); return `<div class="wk"><span>${lbl(w.a,w.b)}</span>
-        <div class="bar" style="width:${Math.max(2, tot/maxW*100).toFixed(1)}%">${SPORT_KEYS.map(sp=>{const v=spTot(w.r.t,sp);return v?`<div title="${SPORTS[sp].label} ${fmtC(v)}" style="flex:${v};background:${SPORTS[sp].color}"></div>`:''}).join('')}</div>
-        <span class="n">${fmtC(tot)}</span><span class="o">${w.r.off} j</span></div>`; }).join('')}
+    <div class="mgrid">
+      <div class="mz">${zoneTableHTML(t)}</div>
+      <div class="side mweeks">
+        <div class="wk wkhead"><span>Semaine</span><span>${SPORT_KEYS.map(k=>`<span class="dot" style="background:${SPORTS[k].color}"></span>${SPORTS[k].label}`).join(' &nbsp;')}</span><span style="text-align:right">Total</span><span style="text-align:right">Off</span></div>
+        ${weeks.map(w => { const tot = tTotal(w.r.t); return `<div class="wk"><span>${lbl(w.a,w.b)}</span>
+          <div class="bar" style="width:${Math.max(2, tot/maxW*100).toFixed(1)}%">${SPORT_KEYS.map(sp=>{const v=spTot(w.r.t,sp);return v?`<div title="${SPORTS[sp].label} ${fmtC(v)}" style="flex:${v};background:${SPORTS[sp].color}"></div>`:''}).join('')}</div>
+          <span class="n">${fmtC(tot)}</span><span class="o">${w.r.off} j</span></div>`; }).join('')}
+      </div>
     </div>`;
 }
 
@@ -1932,7 +1948,7 @@ function weeklyStats(aid, endWeek, n, mode){
 }
 function niceStep(maxH){ const steps = [0.5, 1, 2, 3, 5, 10, 15, 20]; return steps.find(s => maxH / s <= 5) || 25; }
 function statsChart(data){
-  const W = 1000, H = 300, L = 44, R = 10, T = 20, B = 30, pw = W - L - R, ph = H - T - B;
+  const W = 1000, H = 190, L = 44, R = 10, T = 16, B = 24, pw = W - L - R, ph = H - T - B;
   const maxS = Math.max(3600, ...data.map(d => Math.max(d.total, ...LONG3.map(k => d.lng[k]))));
   const step = niceStep(maxS / 3600) * 3600, ymax = Math.ceil(maxS * 1.08 / step) * step;
   const y = v => T + ph - v / ymax * ph, n = data.length, slot = pw / n, bw = Math.min(46, slot * 0.58);
@@ -1975,7 +1991,8 @@ function statsView(aid){
   const cur = mondayOf(todayStr());
   const rows = data.slice().reverse().map(d => { const dt = parseYmd(d.ws);
     return `<tr class="${d.ws === cur ? 'cur' : ''}"><td>${dt.getDate()} ${MONTHS[dt.getMonth()]}</td>${STACK.map(k => `<td>${fmtC(d.tot[k])}</td>`).join('')}<td><b>${fmtC(d.total)}</b></td>${LONG3.map(k => `<td>${fmtC(d.lng[k])}</td>`).join('')}</tr>`; }).join('');
-  return `<div class="row" style="margin:4px 0 8px;gap:8px">
+  const kstrip = `<div class="kstrip"><span>Total ${n} sem. <b>${fmtC(tot)}</b></span><span>Moy. / sem. <b>${fmtC(tot / n)}</b></span>${LONG3.map(k => `<span style="color:${SPORTS[k].color}">${icon(k, 12)} + longue <b>${fmtC(maxL(k))}</b></span>`).join('')}</div>`;
+  return `<div class="row" style="margin:2px 0 6px;gap:8px">
       <div class="seg"><button class="${mode==='realise'?'on':''}" data-a="mode" data-v="realise">Réalisé</button><button class="${mode==='prevu'?'on':''}" data-a="mode" data-v="prevu">Prévu</button></div>
       <div class="seg">${[8,12,26,52].map(k => `<button class="${n===k?'on':''}" data-a="statn" data-v="${k}">${k} sem.</button>`).join('')}</div>
       <button class="btn sm" data-a="statprev">◀</button><button class="btn sm" data-a="statnext">▶</button>
@@ -1987,17 +2004,13 @@ function statsView(aid){
       ${statsChart(data)}
       <div class="tip" id="stattip"></div>
     </div>
-    <div class="kpis" style="margin-top:8px">
-      <div class="kpi"><small>Total sur ${n} semaines</small><b>${fmtC(tot)}</b></div>
-      <div class="kpi"><small>Moyenne par semaine</small><b>${fmtC(tot / n)}</b></div>
-      ${LONG3.map(k => `<div class="kpi"><small>Plus longue ${SPORTS[k].label.toLowerCase() === 'cap' ? 'CAP' : SPORTS[k].label.toLowerCase()}</small><b>${fmtC(maxL(k))}</b></div>`).join('')}
-    </div>
-    <div class="sect">Détail par semaine</div>
-    <div class="pane" style="padding:0;overflow:auto"><table class="stt">
+    ${kstrip}
+    <details class="stdet"><summary>Détail par semaine (tableau)</summary>
+    <div class="pane" style="padding:0;overflow:auto;margin-top:4px"><table class="stt">
       <thead><tr><th>Semaine du</th>${STACK.map(k => `<th>${SPORTS[k].label}</th>`).join('')}<th>Total</th>${LONG3.map(k => `<th>+ longue ${SPORTS[k].label}</th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td>Total</td>${STACK.map(k => `<td>${fmtC(sumK(k))}</td>`).join('')}<td>${fmtC(tot)}</td>${LONG3.map(k => `<td>${fmtC(maxL(k))}</td>`).join('')}</tr></tfoot>
-    </table></div>`;
+    </table></div></details>`;
 }
 // Infobulle du graphique
 document.addEventListener('mousemove', e => {
@@ -2453,9 +2466,19 @@ function genDefaults(){
   if (!PLAN_SPECS[g.type][g.obj]) g.obj = GEN_OBJ[g.type][0][0];
   return g;
 }
-const planAllowed = t => t === 'tri' ? has('plansTri') : has('plans');
+// Offre gratuite : 3 plans seulement (clé discipline/objectif/niveau)
+const FREE_PLANS = new Set(['run/5k/deb', 'run/10k/deb', 'tri/xs/deb']);
+const planFull = t => t === 'tri' ? has('plansTri') : has('plans');
+const planOk = (t, o, l) => planFull(t) || FREE_PLANS.has(`${t}/${o}/${l}`);
+const planAllowed = t => planFull(t) || [...FREE_PLANS].some(k => k.startsWith(t + '/'));
+// en gratuit, le plan affiché est forcément l'un des 3 plans offerts, avec sa durée d'origine
+function fitFreePlan(g){
+  if (planOk(g.type, g.obj, g.level) && (planFull(g.type) || true)) { if (!planFull(g.type)){ const P = PLAN_SPECS[g.type][g.obj], i = LEVELS.findIndex(l => l[0] === g.level); g.weeks = P.w[i]; g.per = P.per[i]; } return g; }
+  const [t, o, l] = [...FREE_PLANS][0].split('/'), P = PLAN_SPECS[t][o], i = LEVELS.findIndex(x => x[0] === l);
+  return Object.assign(g, {type:t, obj:o, level:l, weeks:P.w[i], per:P.per[i]});
+}
 function generatorHTML(){
-  const g = genDefaults(), plan = generatePlan(g), P = planSpec(g);
+  const g = fitFreePlan(genDefaults()), plan = generatePlan(g), P = planSpec(g);
   const opt = (arr, v) => arr.map(([k,l]) => `<option value="${k}" ${k===String(v)?'selected':''}>${l}</option>`).join('');
   const rows = plan.map(wk => { const tot = wk.sessions.reduce((a,s)=>a+s.blocks.reduce((x,b)=>x+blockDur(b, s),0),0), ph = PHASES[wk.phase];
     return `<div class="gw"><b>S${wk.w+1}</b><span class="ph" style="color:${ph[1]}">${ph[0]}</span><b>${fmtC(tot)}</b>
@@ -2464,11 +2487,12 @@ function generatorHTML(){
   return `<div class="pane dense">
     <div class="gtitle"><b>${esc(PLAN_DISC.find(d => d[0] === g.type)[1])} · ${esc(P.label)} · ${LEVELS.find(l => l[0] === g.level)[1]}</b> <span class="ztxt">${esc(P.d)}</span></div>
     <div class="gen">
-      <div><label>Discipline</label><select data-g="type">${opt(PLAN_DISC.filter(([t]) => planAllowed(t)), g.type)}</select></div>
-      <div><label>Objectif</label><select data-g="obj">${opt(GEN_OBJ[g.type], g.obj)}</select></div>
-      <div><label>Niveau</label><select data-g="level">${opt(LEVELS.map(l=>[l[0],l[1]]), g.level)}</select></div>
-      <div><label>Semaines</label><input type="number" min="2" max="30" data-g="weeks" value="${g.weeks}" style="width:60px!important"></div>
-      <div><label>Séances / sem.</label><select data-g="per">${opt([3,4,5,6,7].map(n=>[String(n),String(n)]), g.per)}</select></div>
+      ${planFull(g.type) ? '' : '<div class="lockbox sm" style="grid-column:1/-1"><b>🎁 Plan offert</b><span>Vous pouvez choisir la date de début. Les autres plans et les réglages sont inclus dans l\'abonnement Standard.</span></div>'}
+      <div><label>Discipline</label><select data-g="type" ${planFull(g.type) ? '' : 'disabled'}>${opt(PLAN_DISC.filter(([t]) => planAllowed(t)), g.type)}</select></div>
+      <div><label>Objectif</label><select data-g="obj" ${planFull(g.type) ? '' : 'disabled'}>${opt(GEN_OBJ[g.type], g.obj)}</select></div>
+      <div><label>Niveau</label><select data-g="level" ${planFull(g.type) ? '' : 'disabled'}>${opt(LEVELS.map(l=>[l[0],l[1]]), g.level)}</select></div>
+      <div><label>Semaines</label><input type="number" min="2" max="30" data-g="weeks" value="${g.weeks}" ${planFull(g.type) ? '' : 'disabled'} style="width:60px!important"></div>
+      <div><label>Séances / sem.</label><select data-g="per" ${planFull(g.type) ? '' : 'disabled'}>${opt([3,4,5,6,7].map(n=>[String(n),String(n)]), g.per)}</select></div>
       <div><label>Début (lundi)</label><input type="date" data-g="start" value="${g.start}"></div>
       <div style="text-align:right"><button class="btn sm primary" data-a="genapply">Appliquer les ${total} séances</button></div>
     </div>
@@ -2557,10 +2581,11 @@ function libPlansView(aid){
   if (!PLAN_SPECS[ui.pdisc]) ui.pdisc = g.type;
   const D = ui.pdisc, nAll = Object.values(PLAN_SPECS).reduce((a, o) => a + Object.keys(o).length * LEVELS.length, 0);
   const tabs = `<div class="filt pdisc">${PLAN_DISC.map(([t, l]) => `<button class="${t === D ? 'on' : ''}" data-a="pdisc" data-v="${t}">${l} <small>${Object.keys(PLAN_SPECS[t]).length * LEVELS.length}</small></button>`).join('')}</div>`;
-  const matrix = !planAllowed(D) ? lockBox(D === 'tri' ? 'plansTri' : 'plans', true) : `<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
+  const matrix = `${planFull(D) ? '' : lockBox(D === 'tri' ? 'plansTri' : 'plans', true)}<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
     ${Object.entries(PLAN_SPECS[D]).map(([obj, P]) => `<tr><th style="white-space:nowrap">${esc(P.label)}<div style="text-transform:none;font-weight:400">${esc(P.d)}</div></th>${LEVELS.map(([lv], i) => {
       const on = g.type === D && g.obj === obj && g.level === lv && +g.weeks === P.w[i] && +g.per === P.per[i];
-      return `<td><button class="${on ? 'on' : ''}" data-a="preset" data-t="${D}" data-o="${obj}" data-l="${lv}"><b>${P.w[i]} semaines</b>${P.per[i]} séances / sem.</button></td>`; }).join('')}</tr>`).join('')}
+      const ok = planOk(D, obj, lv), free = !planFull(D) && ok;
+      return `<td><button class="${on ? 'on' : ''} ${ok ? '' : 'plock'}" data-a="preset" data-t="${D}" data-o="${obj}" data-l="${lv}"><b>${ok ? '' : '🔒 '}${P.w[i]} semaines${free ? ' <span class="ffree">offert</span>' : ''}</b>${P.per[i]} séances / sem.</button></td>`; }).join('')}</tr>`).join('')}
   </tbody></table>`;
   const plans = state.library.plans.map(p => {
     const items = planItems(p.weeks[0]), n = p.weeks.length ? Math.round(p.weeks.reduce((a, w) => a + planItems(w).length, 0) / p.weeks.length) : 0;
@@ -3110,7 +3135,7 @@ document.addEventListener('click', e => {
     case 'pdisc': ui.pdisc = el.dataset.v; render(); break;
     case 'preset': {
       const t = el.dataset.t, P = PLAN_SPECS[t][el.dataset.o], lv = el.dataset.l, i = LEVELS.findIndex(l => l[0] === lv);
-      if (!planAllowed(t)){ lockedModal(t === 'tri' ? 'plansTri' : 'plans'); break; }
+      if (!planOk(t, el.dataset.o, lv)){ lockedModal(t === 'tri' ? 'plansTri' : 'plans'); break; }
       Object.assign(genDefaults(), {type:t, obj:el.dataset.o, level:lv, weeks:P.w[i], per:P.per[i]});
       render(); const gen = document.querySelector('.gen'); if (gen) gen.scrollIntoView({behavior:'smooth', block:'start'});
       toast(`${P.label} · ${LEVELS[i][1]} : réglez la date de début puis « Appliquer »`); break; }
@@ -3197,7 +3222,8 @@ document.addEventListener('click', e => {
     case 'exportfit': if (s) exportFit(s); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
     case 'genapply': {
-      const aid = curAid(), g = genDefaults(), plan = generatePlan(g), start = mondayOf(g.start || nextMonday());
+      if (!planOk(genDefaults().type, genDefaults().obj, genDefaults().level)){ lockedModal('plans'); break; }
+      const aid = curAid(), g = fitFreePlan(genDefaults()), plan = generatePlan(g), start = mondayOf(g.start || nextMonday());
       const n = plan.reduce((a,wk)=>a+wk.sessions.length,0);
       confirmBox(`Ajouter ${n} séances sur ${plan.length} semaines à partir du ${longDate(start)} ?`, () => {
         plan.forEach(wk => wk.sessions.forEach(x => state.sessions.push({id:(typeof newId === 'function' ? newId() : uid()), athleteId:aid, date:addDays(start, wk.w*7 + x.day), sport:x.sport, title:x.title, blocks:x.blocks, bilan:emptyBilan(), chain:x.chain, ord:x.ord})));
