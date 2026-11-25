@@ -520,6 +520,15 @@ table.it td.na{color:#c3ccd5}
 @media (max-width:800px){.mgrid{grid-template-columns:1fr}}
 .pmx button.plock{opacity:.5;background:#f4f6f8}
 .ffree{background:#2f9461;color:#fff;border-radius:999px;padding:0 6px;font-size:.62rem;font-weight:600;margin-left:4px}
+.rview{padding:8px 12px}
+.rhead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.rtt{flex:1;min-width:0;display:flex;flex-direction:column}.rtt b{font-size:1.02rem}
+.rtot{font-family:"Barlow Semi Condensed";font-weight:700;font-size:1.25rem}
+.rb{display:grid;grid-template-columns:130px 1fr 52px;gap:8px;align-items:baseline;padding:4px 0;border-top:1px solid #eef2f5;font-size:.82rem}
+.rbt{font-weight:600;color:#3a4a58}.rdu{text-align:right;color:var(--muted);font-size:.76rem}
+.rs{display:inline;line-height:1.7}.rd{font-weight:700;margin-right:4px}.rs .ilab{margin-right:2px}
+.ri{color:#3a4a58}.rp{color:var(--accent)}.rc{color:var(--muted)}.rx{color:#1d2a36}.rplus{color:#9aa7b3;margin:0 5px}
+@media (max-width:600px){.rb{grid-template-columns:1fr}.rdu{text-align:left}}
 </style>
 </head>
 <body>
@@ -1857,6 +1866,45 @@ function summaryHTML(s){
 }
 function bilanTotals(s){ return `<td>Total</td><td colspan="3">${fmtC(sum(realZones(s)))}</td>`; }
 
+/* ---------- Séance en mode lecture ---------- */
+// Adhérent : lecture par défaut, crayon pour modifier. Coach : édition par défaut, œil pour la lecture.
+function isReadMode(s){
+  if (!canEdit(s)) return true;
+  return me.role === 'coach' ? ui.sessRead === s.id : ui.sessEdit !== s.id;
+}
+function durReadTxt(st){
+  if (st.mode === 'dist'){ const m = distMeters(st); return !m ? '' : m >= 1000 ? (m/1000).toFixed(m % 1000 ? 1 : 0).replace('.', ',') + ' km' : Math.round(m) + ' m'; }
+  const sec = parseMS(st.dur); if (!sec) return '';
+  if (sec < 60) return sec + '"';
+  const h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), x = sec % 60;
+  return h ? `${h}h${String(m).padStart(2,'0')}` : x ? `${m}'${String(x).padStart(2,'0')}` : `${m}'`;
+}
+function stepReadHTML(st, s){
+  const i = stepInfo(st, s), it = INT_BY[i.k], v = x => x && x !== '—';
+  const parts = [];
+  if (s.sport !== 'strength' && v(i.pace)) parts.push(`<b class="rp">${esc(i.pace)}</b>`);
+  if (s.sport !== 'strength' && v(i.pct)) parts.push(`${esc(String(i.pct).replace(/\s*%$/, ''))} ${PCT_LAB[s.sport]}`);
+  if (v(i.fc)) parts.push(`FC ${esc(i.fc)}${/bpm/.test(i.fc) ? '' : ' bpm'}`);
+  if (v(i.rpe)) parts.push(`RPE ${esc(i.rpe)}`);
+  return `<span class="rs"><span class="rd">${durReadTxt(st) || '–'}</span><span class="ilab" style="background:${it ? it.c : '#eee'};${i.k >= 'I6' ? 'color:#fff' : ''}" title="${it ? esc(it.n) : ''}">${esc(i.k || '')}</span>${parts.length ? ' <span class="ri">' + parts.join(' · ') + '</span>' : ''}${st.autre ? ` <i class="rc">${esc(st.autre)}</i>` : ''}</span>`;
+}
+function readPlanHTML(s){
+  const sp = SPORTS[s.sport], nx = nextInDay(s), pv = prevInDay(s);
+  const rows = s.blocks.map((b, bi) => {
+    const n = Math.max(1, +b.reps || 1), steps = b.steps.map(st => stepReadHTML(st, s));
+    return `<div class="rb"><span class="rbt">${esc(b.title || 'Bloc ' + (bi+1))}</span>
+      <span class="rbs">${n > 1 ? `<b class="rx">${n} ×</b> ( ${steps.join('<span class="rplus">+</span>')} )` : steps.join('<br>')}</span>
+      <span class="rdu">${fmtC(blockDur(b, s))}</span></div>`; }).join('');
+  return `<div class="pane rview" style="border-top:3px solid ${sp.color}">
+    <div class="rhead"><span style="color:${sp.color}">${icon(s.sport, 22)}</span>
+      <div class="rtt"><b>${esc(s.title || sp.label)}</b><span class="ztxt">${longDate(s.date)} · ${s.optional ? '<span class="fac">☆</span> facultative' : '<span class="obl">★</span> obligatoire'}${s.chain && nx ? ' · ⛓ enchaînée avec ' + esc(nx.title || SPORTS[nx.sport].label) : ''}${pv && pv.chain ? ' · ⛓ après ' + esc(pv.title || SPORTS[pv.sport].label) : ''}</span></div>
+      <span class="rtot">${fmtC(sum(plannedZones(s)))}</span>
+      <button class="ib" title="Exporter vers montre GPS (.fit)" data-a="exportfit">⌚</button>
+      ${canEdit(s) ? '<button class="btn sm" data-a="editmode" title="Passer en mode édition">✏️ Modifier</button>' : ''}</div>
+    <div class="sgraph">${sessionGraph(s, 34, true)}</div>
+    ${rows || '<div class="empty">Aucun contenu prévu.</div>'}
+  </div>`;
+}
 function detailHTML(s){
   const ro = canEdit(s) ? '' : 'disabled';
   if (canEdit(s) && (ensureInts(s) | ensurePrefill(s))) save();
@@ -1889,14 +1937,14 @@ function detailHTML(s){
       </table></div>
       ${ro ? '' : `<button class="lk" data-a="sadd" data-b="${bi}">+ ligne</button><button class="lk" data-a="expick0" data-b="${bi}">+ exercice</button>`}
     </div>`).join('');
-  const bl = s.bilan;
+  const bl = s.bilan, rd = isReadMode(s);
   return `<div class="detail dense">
-    <div class="pane" style="border-top:3px solid ${sp.color}">
+    ${rd ? readPlanHTML(s) : `<div class="pane" style="border-top:3px solid ${sp.color}">
       <div class="shrow">
         <span style="color:${sp.color}">${icon(s.sport, 20)}</span><select data-f="sport" style="color:${sp.color}" ${ro}>${SPORT_KEYS.map(k=>`<option value="${k}" ${k===s.sport?'selected':''}>${SPORTS[k].label}</option>`).join('')}</select>
         <input class="ti" placeholder="Titre de la séance" data-f="title" value="${esc(s.title)}" ${ro}>
         <input type="date" data-f="date" value="${s.date}" ${ro}>
-        ${ro ? '' : `<button class="ib" title="Déplacer au jour précédent" data-a="mvday" data-v="-1">◀</button><button class="ib" title="Déplacer au jour suivant" data-a="mvday" data-v="1">▶</button><button class="ib" title="Charger une séance type" data-a="loadtpl">📂</button><button class="ib" title="Dupliquer au lendemain" data-a="dupsess">⧉</button><button class="ib" title="Exporter vers montre GPS (.fit)" data-a="exportfit">⌚</button><button class="ib" title="Enregistrer comme séance type" data-a="savetpl">★</button><button class="ib red" title="Supprimer la séance" data-a="delsess">🗑</button>`}
+        ${ro ? '' : `<button class="ib" title="Déplacer au jour précédent" data-a="mvday" data-v="-1">◀</button><button class="ib" title="Déplacer au jour suivant" data-a="mvday" data-v="1">▶</button><button class="ib" title="Charger une séance type" data-a="loadtpl">📂</button><button class="ib" title="Dupliquer au lendemain" data-a="dupsess">⧉</button><button class="ib" title="Mode lecture" data-a="editmode">👁</button><button class="ib" title="Exporter vers montre GPS (.fit)" data-a="exportfit">⌚</button><button class="ib" title="Enregistrer comme séance type" data-a="savetpl">★</button><button class="ib red" title="Supprimer la séance" data-a="delsess">🗑</button>`}
       </div>
       ${sessOptsHTML(s, ro)}
       <div class="sline" id="summary">${summaryHTML(s)}</div>
@@ -1905,7 +1953,7 @@ function detailHTML(s){
       ${ro ? '' : `<button class="lk" data-a="badd">+ bloc</button>`}`}
       <datalist id="blk-titles">${['Échauffement','Éducatifs','Gammes','Corps de séance','Fractionné','Série','Récupération','Retour au calme'].map(t=>`<option value="${t}">`).join('')}</datalist>
       <span class="ztxt" style="font-size:.68rem;float:right;margin-top:3px">45 = 45 min · 3:30 = 3 min 30 s · 1:30:00 = 1 h 30</span>
-    </div>
+    </div>`}
     <div class="pane bilanpane ${isDone(s) ? 'ok' : ''}">
       <h4>📝 Bilan de la séance ${isDone(s) ? '<span class="done">✓ validée</span>' : ''}</h4>
       ${!isDone(s) && bl.prefilled && !bl.edited ? '<div class="pre">Prérempli avec le prévu : modifiez si besoin, puis validez.</div>' : ''}
@@ -3218,6 +3266,7 @@ document.addEventListener('click', e => {
       const other = el.dataset.id;
       sb.from('shares').delete().eq('owner_id', me.id).eq('viewer_id', other).then(async ({error}) => { if (error) toast('Échec : ' + error.message); else { await loadAll(); render(); toast('Accès retiré'); } });
       break; }
+    case 'editmode': if (s){ if (isReadMode(s)){ ui.sessEdit = s.id; ui.sessRead = null; } else { ui.sessRead = s.id; ui.sessEdit = null; } render(); } break;
     case 'viewas': ui.viewAs = el.dataset.id; ui.sessionId = null; render(); break;
     case 'exportfit': if (s) exportFit(s); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
