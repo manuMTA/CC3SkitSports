@@ -469,16 +469,28 @@ table.it td.na{color:#c3ccd5}
 .viewas button.on{background:#8e44ad;border-color:#8e44ad;color:#fff}
 .shrow{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.86rem}
 .fithelp{font-size:.86rem;padding-left:18px}.fithelp li{margin:4px 0}
-.zone{background:#fff;border:1px solid #c9d3dd;border-radius:14px;box-shadow:0 2px 8px rgba(20,40,60,.07);margin:14px 0;overflow:hidden}
-.zone>.zhead{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #dfe6ec;font-weight:700;font-size:.95rem;letter-spacing:.01em}
-.zone>.zhead .ztitle{display:flex;align-items:center;gap:6px}
-.zweek>.zhead{background:#e8f1f8;border-left:5px solid #1f6fa8}
-.zrecap>.zhead{background:#eef7f1;border-left:5px solid #2f9461}
-.zsess>.zhead{background:#fbf2e6;border-left:5px solid #d9822b}
-.zone>*:not(.zhead){margin-left:12px;margin-right:12px}
-.zone>.zhead+*{margin-top:10px}
-.zone>*:last-child{margin-bottom:12px}
-.zone .wkb{margin-top:10px}
+.zone{display:flex;background:#fff;border:1px solid #c9d3dd;border-radius:12px;box-shadow:0 2px 6px rgba(20,40,60,.06);margin:8px 0;overflow:hidden}
+.zone>.zhead{flex:0 0 26px;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:700;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;padding:6px 0}
+.zone>.zhead .ztitle{display:flex;align-items:center;gap:5px}
+.zone>.zbody{flex:1;min-width:0;padding:6px 8px}
+.zweek>.zhead{background:#e3eef7;color:#1f5f8f}
+.zrecap>.zhead{background:#e6f4ea;color:#23744a}
+.zsess>.zhead{background:#fbeedd;color:#a85f17}
+.zone .ag{margin-top:4px}
+.zone .hint{margin:3px 0 0}
+.zrecap .wkb{margin:0;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:6px}
+.zrecap table.cmp{font-size:.7rem;padding:2px;border-spacing:1px}
+.zrecap table.cmp th,.zrecap table.cmp td{padding:0 4px;line-height:1.35}
+.zrecap table.cmp thead th{font-size:.62rem}
+.zrecap .zchip{padding:0 6px;font-size:.66rem}
+.zrecap .kp{padding:4px 8px!important;gap:2px 14px!important}
+.zrecap .kp b{font-size:1rem!important}
+.zsess .detail{margin-top:0;grid-template-columns:minmax(0,1fr) 360px}
+.bilanpane{border:2px solid #d9822b!important;background:#fffaf3!important;box-shadow:0 3px 12px rgba(217,130,43,.18)}
+.bilanpane.ok{border-color:#2f9461!important;background:#f3fbf6!important;box-shadow:0 3px 12px rgba(47,148,97,.18)}
+.bilanpane>h4{font-size:.95rem!important;color:#1d2a36!important;text-transform:none!important;letter-spacing:0!important;margin-bottom:6px!important}
+.bilanpane table.bz input{background:#fff}
+@media (max-width:900px){.zsess .detail{grid-template-columns:1fr}.zrecap .wkb{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1674,17 +1686,17 @@ function weekPage(aid){
     </div>`;
   }
   const s = ui.sessionId ? getSession(ui.sessionId) : null;
-  return `<section class="zone zweek"><div class="zhead"><span class="ztitle">📅 Semaine</span></div>
+  return `<section class="zone zweek"><div class="zhead"><span class="ztitle">Semaine</span></div><div class="zbody">
       ${weekNav()}
       <div class="ag">${cols}</div>
       <div class="hint">Glissez une séance sur un autre jour pour la déplacer (Ctrl ou Alt enfoncé pour la copier).</div>
-    </section>
-    <section class="zone zrecap"><div class="zhead"><span class="ztitle">📊 Récap de la semaine</span></div>
+    </div></section>
+    <section class="zone zrecap"><div class="zhead"><span class="ztitle">Récap</span></div><div class="zbody">
       <div class="wkb" id="wkbilan">${weekMini(aid)}</div>
-    </section>
-    <section class="zone zsess"><div class="zhead"><span class="ztitle">${s ? `<span style="color:${SPORTS[s.sport].color}">${icon(s.sport, 16)}</span> Séance du ${longDate(s.date)}` : '🏃 Séance'}</span></div>
+    </div></section>
+    <section class="zone zsess"><div class="zhead"><span class="ztitle">Séance</span></div><div class="zbody">
       ${s ? detailHTML(s) : '<div class="pane empty">Aucune séance cette semaine. Utilisez « + » sur un jour pour en créer une.</div>'}
-    </section>`;
+    </div></section>`;
 }
 
 function weekBilanView(aid){
@@ -1778,8 +1790,8 @@ function detailHTML(s){
       <datalist id="blk-titles">${['Échauffement','Éducatifs','Gammes','Corps de séance','Fractionné','Série','Récupération','Retour au calme'].map(t=>`<option value="${t}">`).join('')}</datalist>
       <span class="ztxt" style="font-size:.68rem;float:right;margin-top:3px">45 = 45 min · 3:30 = 3 min 30 s · 1:30:00 = 1 h 30</span>
     </div>
-    <div class="pane">
-      <h4>Bilan séance ${isDone(s) ? '<span class="done">✓ validée</span>' : ''}</h4>
+    <div class="pane bilanpane ${isDone(s) ? 'ok' : ''}">
+      <h4>📝 Bilan de la séance ${isDone(s) ? '<span class="done">✓ validée</span>' : ''}</h4>
       ${!isDone(s) && bl.prefilled && !bl.edited ? '<div class="pre">Prérempli avec le prévu : modifiez si besoin, puis validez.</div>' : ''}
       <table class="bz">
         <thead><tr><th></th><th>Temps</th><th>FC</th><th>Puiss./allure</th></tr></thead>
