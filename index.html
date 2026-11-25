@@ -469,6 +469,16 @@ table.it td.na{color:#c3ccd5}
 .viewas button.on{background:#8e44ad;border-color:#8e44ad;color:#fff}
 .shrow{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.86rem}
 .fithelp{font-size:.86rem;padding-left:18px}.fithelp li{margin:4px 0}
+.zone{background:#fff;border:1px solid #c9d3dd;border-radius:14px;box-shadow:0 2px 8px rgba(20,40,60,.07);margin:14px 0;overflow:hidden}
+.zone>.zhead{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #dfe6ec;font-weight:700;font-size:.95rem;letter-spacing:.01em}
+.zone>.zhead .ztitle{display:flex;align-items:center;gap:6px}
+.zweek>.zhead{background:#e8f1f8;border-left:5px solid #1f6fa8}
+.zrecap>.zhead{background:#eef7f1;border-left:5px solid #2f9461}
+.zsess>.zhead{background:#fbf2e6;border-left:5px solid #d9822b}
+.zone>*:not(.zhead){margin-left:12px;margin-right:12px}
+.zone>.zhead+*{margin-top:10px}
+.zone>*:last-child{margin-bottom:12px}
+.zone .wkb{margin-top:10px}
 </style>
 </head>
 <body>
@@ -1538,7 +1548,7 @@ function athleteView(){
       (ui.bsub === 'plans' ? (has('plans') ? libPlansView(aid) : lockBox('plans')) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? '' : lockBox('library', true)) + libSessionsView(aid));
   } else if (ui.tab === 'param'){
     body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement'],['partage','Partage'],['compte','Mon compte']]) + (ui.psub === 'partage' ? (aid === me.id ? shareView() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le partage se règle depuis le compte de la personne.</p></div>') : (ui.psub === 'compte' ? (aid === me.id ? pwFormHTML() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le mot de passe se change depuis le compte de la personne.</p></div>') : ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid)));
-  } else body = weekNav() + weekPage(aid);
+  } else body = weekPage(aid);
   return `${head}
     <div class="tabs">
       ${[['agenda','Semaine'],['stats','Statistiques'],['biblio','Bibliothèque'],['param','Paramétrage']].map(([k, l]) =>
@@ -1664,10 +1674,17 @@ function weekPage(aid){
     </div>`;
   }
   const s = ui.sessionId ? getSession(ui.sessionId) : null;
-  return `<div class="ag">${cols}</div>
-    <div class="hint">Glissez une séance sur un autre jour pour la déplacer (Ctrl ou Alt enfoncé pour la copier).</div>
-    <div class="wkb" id="wkbilan">${weekMini(aid)}</div>
-    ${s ? detailHTML(s) : '<div class="pane empty" style="margin-top:8px">Aucune séance cette semaine. Utilisez « + » sur un jour pour en créer une.</div>'}`;
+  return `<section class="zone zweek"><div class="zhead"><span class="ztitle">📅 Semaine</span></div>
+      ${weekNav()}
+      <div class="ag">${cols}</div>
+      <div class="hint">Glissez une séance sur un autre jour pour la déplacer (Ctrl ou Alt enfoncé pour la copier).</div>
+    </section>
+    <section class="zone zrecap"><div class="zhead"><span class="ztitle">📊 Récap de la semaine</span></div>
+      <div class="wkb" id="wkbilan">${weekMini(aid)}</div>
+    </section>
+    <section class="zone zsess"><div class="zhead"><span class="ztitle">${s ? `<span style="color:${SPORTS[s.sport].color}">${icon(s.sport, 16)}</span> Séance du ${longDate(s.date)}` : '🏃 Séance'}</span></div>
+      ${s ? detailHTML(s) : '<div class="pane empty">Aucune séance cette semaine. Utilisez « + » sur un jour pour en créer une.</div>'}
+    </section>`;
 }
 
 function weekBilanView(aid){
