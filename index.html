@@ -2571,12 +2571,18 @@ function libPlansView(aid){
       <div class="act dense"><span class="ztxt">Début</span><input type="date" id="libd-${p.id}" value="${nextMonday()}"><button class="btn sm primary" data-a="applyplan" data-id="${p.id}">Appliquer</button>
         ${isUserPlan(p) && (!p.ownerId || p.ownerId === me.id) ? `<button class="ib red" title="Supprimer ce plan" data-a="plandel" data-id="${p.id}">✕</button>` : ''}</div>
     </div>`; }).join('');
-  return `<div class="sect" style="margin-top:4px">Plans types — ${nAll} plans : choisissez la discipline, la distance et le niveau</div>
-    ${tabs}${matrix}
-    ${planAllowed(g.type) ? `<div class="sect">Plan sélectionné — ajustez semaines, séances et date de début</div>${generatorHTML()}` : ''}
-    <div class="sect">Plans enregistrés</div>
-    <div class="pcards">${plans || '<div class="empty">Aucun plan.</div>'}</div>
-    ${me.role === 'coach' ? '<div class="hint">Pour créer un plan type à partir de l\'agenda d\'un athlète : onglet Semaine → « ★ Enregistrer comme plan type ».</div>' : ''}`;
+  return `<section class="zone zweek"><div class="zhead"><span class="ztitle">Plans types</span></div><div class="zbody">
+      <div class="ztxt" style="margin:2px 0 4px">${nAll} plans : choisissez la discipline, puis la distance et le niveau.</div>
+      ${tabs}${matrix}
+    </div></section>
+    <section class="zone zrecap"><div class="zhead"><span class="ztitle">Enregistrés</span></div><div class="zbody">
+      <div class="pcards">${plans || '<div class="empty">Aucun plan.</div>'}</div>
+      ${me.role === 'coach' ? '<div class="hint">Pour créer un plan type à partir de l\'agenda d\'un athlète : onglet Semaine → « ★ Enregistrer comme plan type ».</div>' : ''}
+    </div></section>
+    ${planAllowed(g.type) ? `<section class="zone zsess"><div class="zhead"><span class="ztitle">Plan sélectionné</span></div><div class="zbody">
+      <div class="ztxt" style="margin:2px 0 4px">Ajustez les semaines, les séances et la date de début, puis appliquez.</div>
+      ${generatorHTML()}
+    </div></section>` : ''}`;
 }
 function libSessionsView(aid){
   ui.lf = ui.lf || {sport:'all', cat:'all', int:'all', lvl:'all', dur:'all', q:''};
