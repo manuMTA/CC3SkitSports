@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CC3S Kit Triathlon — suivi coach & athlètes</title>
+<title>CC2S Kit Triathlon — suivi coach & athlètes</title>
 <meta name="theme-color" content="#16202b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CC3S Tri">
+<meta name="apple-mobile-web-app-title" content="CC2S Tri">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -1263,7 +1263,7 @@ const SITE_URL = (CFG.siteUrl || (location.origin + location.pathname)).replace(
 let snap = {sessions:new Map(), users:new Map(), libS:new Map(), libP:new Map()};
 const J = o => JSON.stringify(o);
 
-const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null, trialUntil:r.trial_until || null, shareOption:!!r.share_option, developer:!!r.developer, login:r.login || ''});
+const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null, trialUntil:r.trial_until || null, shareOption:!!r.share_option, developer:r.role === 'developpeur', login:r.login || ''});
 const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null, share_option:!!u.shareOption});
 const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id, optional:!!(r.opts && r.opts.optional), chain:!!(r.opts && r.opts.chain), ord:(r.opts && r.opts.ord != null) ? r.opts.ord : undefined});
 const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan, opts:{optional:!!s.optional, chain:!!s.chain, ord:s.ord ?? null}});
@@ -1325,7 +1325,7 @@ async function flush(){
     for (const u of state.users){
       const v = J(userTo(u));
       if (snap.users.get(u.id) === v) continue;
-      const row = me.role === 'coach' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null, share_option:!!u.shareOption} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
+      const row = me.role === 'developpeur' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null, share_option:!!u.shareOption} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
       const r = await sb.from('profiles').update(row).eq('id', u.id);
       if (r.error) throw r.error;
       snap.users.set(u.id, v);
@@ -1347,7 +1347,7 @@ window.addEventListener('beforeunload', e => { if (dirty || saving){ flushNow();
 function setStatus(t){ const el = document.getElementById('savestate'); if (el){ el.textContent = t === 'Enregistré' ? '✓ Enregistré' : t; el.style.color = /Erreur/.test(t) ? '#ffb4a8' : ''; el.style.opacity = /Erreur/.test(t) ? '1' : '.6'; } }
 // Recharge en revenant sur l'onglet (activités Strava arrivées, modifications du coach…)
 document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && me && state && !saving && !dirty && (me.role === 'coach' || me.approved)){
+  if (document.visibilityState === 'visible' && me && state && !saving && !dirty && (me.role === 'developpeur' || me.approved)){
     try { await loadAll(); render(); } catch(_){}
   }
 });
@@ -1371,7 +1371,7 @@ function stepSec(st, sport, u){
   const m = distMeters(st); if (!m) return 0;
   return m / speedFor(st, sport, u);
 }
-const ctxUser = s => (s && s.athleteId) ? getUser(s.athleteId) : (ui.athleteId ? getUser(ui.athleteId) : (me && me.role !== 'coach' ? getUser(me.id) : null));
+const ctxUser = s => (s && s.athleteId) ? getUser(s.athleteId) : (ui.athleteId ? getUser(ui.athleteId) : (me && me.role !== 'developpeur' ? getUser(me.id) : null));
 const estTxt = (st, s) => { const d = stepSec(st, s.sport, ctxUser(s)); return d > 0 ? '≈ ' + fmtEst(d) : '← saisir'; };
 const fmtEst = sec => { sec = Math.round(sec); return sec >= 3600 ? Math.floor(sec/3600) + ':' + String(Math.floor(sec%3600/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0') : mmss(sec); };
 
@@ -1450,7 +1450,7 @@ function shiftMonth(m, n){ const [y,mo] = m.split('-').map(Number); const d = ne
 const currentMonth = () => todayStr().slice(0,7);
 const getSession = id => state.sessions.find(s => s.id === id);
 const getUser = id => state.users.find(u => u.id === id);
-const canEdit = s => me && (me.role === 'coach' || s.athleteId === me.id || followedIds().includes(s.athleteId));
+const canEdit = s => me && (me.role === 'developpeur' || s.athleteId === me.id || followedIds().includes(s.athleteId));
 
 /* ===================== Rendu ===================== */
 const $app = document.getElementById('app'), $modal = document.getElementById('modal');
@@ -1459,20 +1459,20 @@ function render(){
   refreshLicense();
   if (!me){ $app.innerHTML = loginView(); return; }
   if (!state){ $app.innerHTML = '<div class="loading">Chargement…</div>'; return; }
-  if (me.role !== 'coach' && !me.approved){ $app.innerHTML = pendingView(); return; }
+  if (me.role !== 'developpeur' && !me.approved){ $app.innerHTML = pendingView(); return; }
   let body = '';
-  if (me.role === 'coach' && ui.view === 'home') body = coachHome();
-  else if (me.role === 'coach' && ui.view === 'accounts') body = accountsView();
+  if (me.role === 'developpeur' && ui.view === 'home') body = coachHome();
+  else if (me.role === 'developpeur' && ui.view === 'accounts') body = accountsView();
   else body = viewAsBar() + athleteView();
   $app.innerHTML = `
   <div class="topbar"><div class="wrap">
-    <div class="brand">CC3S <span>Kit Triathlon</span></div>
-    ${me.role === 'coach' ? `<button class="btn dark sm mobonly" data-a="home">Athlètes</button><button class="btn dark sm mobonly" data-a="accounts">Comptes${pendingCount() ? `<span class="badge">${pendingCount()}</span>` : ''}</button>` : ''}
+    <div class="brand">CC2S <span>Kit Triathlon</span></div>
+    ${me.role === 'developpeur' ? `<button class="btn dark sm mobonly" data-a="home">Utilisateurs</button><button class="btn dark sm mobonly" data-a="accounts">Comptes${pendingCount() ? `<span class="badge">${pendingCount()}</span>` : ''}</button>` : ''}
     <div class="spacer"></div>
     <span class="who" id="savestate" style="font-size:.75rem;opacity:.6"></span>
     ${isStandalone() ? '' : '<button class="btn dark sm instl" data-a="installinfo" title="Installer l\'application sur votre smartphone">📲 <span>App</span></button>'}
     <button class="btn dark sm bell" id="bell" data-a="notifs" title="Notifications">${bellHTML()}</button>
-    <div class="who">${esc(me.name)} · ${me.role === 'coach' ? 'Coach' : 'Adhérent'}</div>
+    <div class="who">${esc(me.name)} · ${me.role === 'developpeur' ? 'Développeur' : 'Utilisateur'}</div>
     <button class="btn dark sm" data-a="logout">Déconnexion</button>
   </div></div>
   <div class="wrap shell">
@@ -1481,7 +1481,7 @@ function render(){
   </div>`;
 }
 
-const pendingCount = () => state ? state.users.filter(u => u.role === 'athlete' && !u.approved).length : 0;
+const pendingCount = () => state ? state.users.filter(u => u.role === 'utilisateur' && !u.approved).length : 0;
 function loginView(){
   const m = ui.authMode || 'login';
   const f = m === 'signup' ? `
@@ -1501,7 +1501,7 @@ function loginView(){
       <button class="btn primary" style="width:100%;padding:10px">Se connecter</button>
       <button type="button" class="lk" style="margin-top:8px" data-a="authmode" data-v="reset">Mot de passe oublié ?</button>`;
   return `<div class="login"><form class="card" id="authForm" data-mode="${m}">
-    <h1>CC3S <span style="color:var(--accent)">Kit Triathlon</span></h1>
+    <h1>CC2S <span style="color:var(--accent)">Kit Triathlon</span></h1>
     <p>Espace coach et adhérents</p>
     ${m === 'newpw' ? '' : `<button type="button" class="sbtn" data-a="stravalogin">Se connecter avec Strava</button>
     <div class="or">ou avec un e-mail ou un identifiant</div>
@@ -1533,7 +1533,7 @@ function weekNav(){
     <div class="label">${weekLabel(ui.week)}</div>
     <button class="btn sm" data-a="wnext">▶</button>
     <button class="btn sm ghost" data-a="wtoday">Cette semaine</button>
-    ${me && (me.role !== 'coach' || ui.view === 'athlete') && ui.tab === 'agenda' ? '<button class="btn sm" style="margin-left:auto" data-a="saveplan">★ Enregistrer comme plan type</button>' : ''}
+    ${me && (me.role !== 'developpeur' || ui.view === 'athlete') && ui.tab === 'agenda' ? '<button class="btn sm" style="margin-left:auto" data-a="saveplan">★ Enregistrer comme plan type</button>' : ''}
   </div>`;
 }
 
@@ -1572,22 +1572,22 @@ const frDate = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', {day:'
 // Statut d'un compte : admin (rôle coach de la structure), coach (licence), standard ou gratuit (Basic)
 function subStatus(u){
   if (!u) return 'gratuit';
-  if (u.role === 'coach') return 'admin';
+  if (u.role === 'developpeur') return 'admin';
   const ok = !u.licenseUntil || u.licenseUntil >= todayYmd();
   if (u.license === 'coach' && ok) return 'coach';
   if (['standard','complete'].includes(u.license) && ok) return 'standard';
   return 'gratuit';
 }
-const hasShareOpt = u => !!u && (u.role === 'coach' || !!u.shareOption);
-const STATUS_LABEL = {admin:'Administrateur', coach:'Coach', standard:'Standard', gratuit:'Basic'};
+const hasShareOpt = u => !!u && (u.role === 'developpeur' || !!u.shareOption);
+const STATUS_LABEL = {admin:'Développeur', coach:'Coach', standard:'Standard', gratuit:'Basic'};
 const STATUS_COLOR = {admin:'#1f3f5f', coach:'#1f7fbf', standard:'#2f9461', gratuit:'#7d8b99'};
-const statusBadge = u => { const st = subStatus(u); return `<span class="stbadge" style="background:${STATUS_COLOR[st]}">${STATUS_LABEL[st]}</span>${u && u.role !== 'coach' && u.shareOption ? ' <span class="stbadge" style="background:#8e44ad">Partage</span>' : ''}`; };
+const statusBadge = u => { const st = subStatus(u); return `<span class="stbadge" style="background:${STATUS_COLOR[st]}">${STATUS_LABEL[st]}</span>${u && u.role !== 'developpeur' && u.shareOption ? ' <span class="stbadge" style="background:#8e44ad">Partage</span>' : ''}`; };
 function refreshLicense(){ const st = subStatus(me); LIC = licFor(st, {share:hasShareOpt(me)}); }
 const has = f => LIC.features.has(f);
 const tierFor = f => TIER_FEATURES.standard.includes(f) ? 'standard' : 'coach';
 function lockBox(f, compact){
   const t = tierFor(f);
-  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Inclus dans la licence ${STATUS_LABEL[t]}.${me && me.role !== 'coach' ? ` <a href="#" data-a="upgrade" data-v="${t}">Passer en ${STATUS_LABEL[t]}</a>` : ''}</span></div>`;
+  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Inclus dans la licence ${STATUS_LABEL[t]}.${me && me.role !== 'developpeur' ? ` <a href="#" data-a="upgrade" data-v="${t}">Passer en ${STATUS_LABEL[t]}</a>` : ''}</span></div>`;
 }
 const ACTION_FEAT = {newdetail:'detail', badd:'detail', todetail:'detail', savetpl:'customLib', saveplan:'customPlans',
   applyplan:'plans', stravasync:'stravaAuto', stravalink:'stravaAuto', expick0:'exercises', exshow:'exercises', exportfit:'watch'};
@@ -1611,27 +1611,27 @@ function offerTable(st){
 }
 // Écran « Abonnement » (Paramétrage)
 function aboView(aid){
-  const u = getUser(aid), st = subStatus(u), mine = aid === me.id && me.role !== 'coach';
+  const u = getUser(aid), st = subStatus(u), mine = aid === me.id && me.role !== 'developpeur';
   return `<div class="pane dense"><h4>Abonnement</h4>
     <div class="licrow"><span>${mine ? 'Votre accès' : esc(u.name)} : ${statusBadge(u)} ${st !== 'gratuit' && u.licenseUntil ? `<span class="ztxt">jusqu'au ${frDate(u.licenseUntil)}</span>` : ''}</span>
       ${mine && st === 'gratuit' ? `<button class="btn primary" data-a="upgrade" data-v="standard">Passer en Standard</button>` : ''}
       ${mine && st !== 'coach' ? `<button class="btn ${st === 'gratuit' ? '' : 'primary'}" data-a="upgrade" data-v="coach">Passer en Coach</button>` : ''}
       ${mine && !u.shareOption ? `<button class="btn" data-a="upgrade" data-v="share">Ajouter l'option partage</button>` : ''}
       ${mine && (st !== 'gratuit' || u.shareOption) && CFG.portailAbonnement ? `<a class="btn" href="${esc(CFG.portailAbonnement)}" target="_blank" rel="noopener">Gérer ou résilier</a>` : ''}
-      ${!mine && me.role === 'coach' && u.role !== 'coach' ? '<span class="ztxt">L\'accès se modifie dans l\'écran Comptes.</span>' : ''}</div>
+      ${!mine && me.role === 'developpeur' && u.role !== 'developpeur' ? '<span class="ztxt">L\'accès se modifie dans l\'écran Comptes.</span>' : ''}</div>
     <div style="margin-top:8px">${offerTable(st)}</div>
   </div>`;
 }
 // Comptes (administrateur) : Basic / Standard / Coach, et option partage
 function licSelectHTML(u){
-  if (u.role === 'coach') return statusBadge(u);
+  if (u.role === 'developpeur') return statusBadge(u);
   const st = subStatus(u);
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
     <select data-lic="${u.id}" style="width:auto!important" title="Accès">${[['basique','Basic','gratuit'],['standard','Standard','standard'],['coach','Coach','coach']].map(([v, l, s]) => `<option value="${v}" ${st === s ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <label class="chk" title="Option partage avec un coach"><input type="checkbox" data-shareopt="${u.id}" ${u.shareOption ? 'checked' : ''}> Partage</label></div>`;
 }
 document.addEventListener('change', e => {
-  const el = e.target, id = el.dataset.lic || el.dataset.shareopt; if (!id || !me || me.role !== 'coach') return;
+  const el = e.target, id = el.dataset.lic || el.dataset.shareopt; if (!id || !me || me.role !== 'developpeur') return;
   const u = getUser(id); if (!u) return;
   if (el.dataset.lic){ u.license = el.value; u.licenseUntil = null; } else u.shareOption = el.checked;
   save(); render(); toast(`${u.name} : ${STATUS_LABEL[subStatus(u)]}${u.shareOption ? ' + partage' : ''}`);
@@ -1644,11 +1644,11 @@ const followedIds = () => me ? sharesOf().filter(x => x.viewerId === me.id && ge
 // Athlète affiché : le coach choisit ; un utilisateur voit le sien ou celui d'une personne qui le partage avec lui
 function curAid(){
   if (!me) return null;
-  if (me.role === 'coach') return ui.athleteId;
+  if (me.role === 'developpeur') return ui.athleteId;
   return ui.viewAs && followedIds().includes(ui.viewAs) ? ui.viewAs : me.id;
 }
 function viewAsBar(){
-  const f = followedIds(); if (me.role === 'coach' || !f.length) return '';
+  const f = followedIds(); if (me.role === 'developpeur' || !f.length) return '';
   const cur = curAid();
   return `<div class="viewas">Entraînement affiché : <button class="${cur === me.id ? 'on' : ''}" data-a="viewas" data-id="${me.id}">Le mien</button>${f.map(id => `<button class="${cur === id ? 'on' : ''}" data-a="viewas" data-id="${id}">${esc(getUser(id).name)}</button>`).join('')}</div>`;
 }
@@ -1753,7 +1753,7 @@ const isAthleteMsg = m => m.authorId === m.athleteId;
 function iAmRecipient(m){
   if (!me) return false;
   if (m.athleteId === me.id) return !isAthleteMsg(m);
-  return isAthleteMsg(m) && (me.role === 'coach' || followedIds().includes(m.athleteId));
+  return isAthleteMsg(m) && (me.role === 'developpeur' || followedIds().includes(m.athleteId));
 }
 const unreadMsgs = () => ((state && state.messages) || []).filter(m => !m.seen && iAmRecipient(m) && getSession(m.sessionId))
   .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -1789,7 +1789,7 @@ function openNotifs(){
 // Ouvre la séance concernée
 function goToSession(sid){
   const s = getSession(sid); if (!s) return;
-  if (me.role === 'coach'){ ui.view = 'athlete'; ui.athleteId = s.athleteId; }
+  if (me.role === 'developpeur'){ ui.view = 'athlete'; ui.athleteId = s.athleteId; }
   else ui.viewAs = s.athleteId === me.id ? null : s.athleteId;
   ui.tab = 'agenda'; ui.week = mondayOf(s.date); ui.sessionId = s.id;
   markSeen(s.id); render();
@@ -1844,18 +1844,18 @@ function installInfo(){
       <div><b>iPhone / iPad</b> : ouvrez ce site dans <b>Safari</b>, touchez <b>Partager</b> <span class="ishare">⎋</span> puis <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</div>
       <div><b>Android</b> : ouvrez ce site dans <b>Chrome</b>, menu <b>⋮</b> puis <b>« Installer l'application »</b> (ou « Ajouter à l'écran d'accueil »).</div>
       <div>Adresse à ouvrir sur le téléphone : <b class="insturl">${esc(url)}</b> <button class="btn sm" data-a="copyurl">Copier</button></div>
-      <div class="ztxt">L'icône CC3S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran et se met à jour toute seule. Vous vous connectez avec le même compte.</div>
+      <div class="ztxt">L'icône CC2S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran et se met à jour toute seule. Vous vous connectez avec le même compte.</div>
     </div>
     <div style="text-align:right;margin-top:10px"><button class="btn" data-a="mclose">Fermer</button></div>`);
 }
 function installHTML(){
   if (isStandalone()) return `<div class="pane dense" style="margin-top:8px"><h4>📱 Application</h4><span class="ok">✓ Vous utilisez l'application installée.</span></div>`;
   return `<div class="pane dense" style="margin-top:8px"><h4>📱 Installer l'application sur votre téléphone</h4>
-    ${_installEvt ? `<button class="btn primary" data-a="install">Installer CC3S Kit Triathlon</button>` : ''}
+    ${_installEvt ? `<button class="btn primary" data-a="install">Installer CC2S Kit Triathlon</button>` : ''}
     <div class="insthelp">
       <div><b>iPhone / iPad</b> : ouvrez le site dans <b>Safari</b>, touchez <b>Partager</b> <span class="ishare">⎋</span> puis <b>« Sur l'écran d'accueil »</b>.</div>
       <div><b>Android</b> : ouvrez le site dans <b>Chrome</b>, menu <b>⋮</b> puis <b>« Installer l'application »</b> (ou « Ajouter à l'écran d'accueil »).</div>
-      <div class="ztxt">L'icône CC3S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran, sans barre de navigateur.</div>
+      <div class="ztxt">L'icône CC2S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran, sans barre de navigateur.</div>
     </div></div>`;
 }
 /* ===================== Astuce / info à l'honneur ===================== */
@@ -1893,11 +1893,11 @@ function sideTipHTML(){
 function sideNav(){
   const item = (act, v, ic, l, on, extra) => `<button class="snav ${on ? 'on' : ''}" data-a="${act}"${v ? ` data-v="${v}"` : ''}><span class="sic">${ic}</span><span class="slb">${l}</span>${extra || ''}</button>`;
   const first = String(me.name || '').trim().split(/\s+/)[0] || '';
-  const coach = me.role === 'coach', inAth = !coach || ui.view === 'athlete';
+  const coach = me.role === 'developpeur', inAth = !coach || ui.view === 'athlete';
   const pend = typeof pendingCount === 'function' ? pendingCount() : 0;
-  let h = `<div class="shello"><div class="sav">${esc((first[0] || '?').toUpperCase())}</div><div><b>Bonjour ${esc(first)} 👋</b><small>${coach ? 'Coach' : 'Offre ' + (STATUS_LABEL[subStatus(me)] || 'Basic')}</small></div></div>`;
+  let h = `<div class="shello"><div class="sav">${esc((first[0] || '?').toUpperCase())}</div><div><b>Bonjour ${esc(first)} 👋</b><small>${coach ? 'Développeur' : 'Offre ' + (STATUS_LABEL[subStatus(me)] || 'Basic')}</small></div></div>`;
   if (coach){
-    h += '<div class="ssec">Coaching</div>' + item('home', '', '👥', 'Athlètes', ui.view === 'home') + item('accounts', '', '🗂️', 'Comptes', ui.view === 'accounts', pend ? `<span class="badge">${pend}</span>` : '');
+    h += '<div class="ssec">Administration</div>' + item('home', '', '👥', 'Utilisateurs', ui.view === 'home') + item('accounts', '', '🗂️', 'Comptes', ui.view === 'accounts', pend ? `<span class="badge">${pend}</span>` : '');
     if (inAth){ const a = getUser(curAid()); h += `<div class="ssec">${esc(a ? a.name : '')}</div>`; }
   } else h += '<div class="ssec">Mon espace</div>';
   if (inAth) h += [['agenda','📅','Semaine'],['stats','📈','Statistiques'],['biblio','📚','Bibliothèque'],['param','⚙️','Paramétrage']].map(([k, ic, l]) => item('tab', k, ic, l, ui.tab === k)).join('');
@@ -1910,7 +1910,7 @@ function tipMatch(x){
   return !q || (x.title + ' ' + x.body).toLowerCase().includes(q);
 }
 function tipCardsHTML(){
-  const admin = me && me.role === 'coach', L = tipsList().filter(tipMatch);
+  const admin = me && me.role === 'developpeur', L = tipsList().filter(tipMatch);
   if (!L.length) return '<p class="ztxt">Aucune astuce ne correspond à votre recherche.</p>';
   return L.map(x => `<div class="tipc" style="border-left-color:${TIP_COLOR[x.disc] || '#5b6573'}">
       <div class="tiph"><span class="tipb" style="background:${TIP_COLOR[x.disc] || '#5b6573'}">${TIP_DISC[x.disc] || 'Général'}</span><b>${esc(x.title)}</b>
@@ -1918,7 +1918,7 @@ function tipCardsHTML(){
       <div class="tipt">${esc(x.body)}</div></div>`).join('');
 }
 function tipsView(){
-  const admin = me && me.role === 'coach', all = tipsList();
+  const admin = me && me.role === 'developpeur', all = tipsList();
   const cnt = d => all.filter(x => !d || x.disc === d).length;
   return `<section class="zone ztips"><div class="zhead">Astuces</div><div class="zbody">
     <div class="tipsearch">
@@ -1956,8 +1956,8 @@ function athleteView(){
   if (TAB_ALIAS[ui.tab]){ const old = ui.tab; ui.tab = TAB_ALIAS[old];
     if (old === 'mois') ui.ssub = 'mois'; if (old === 'ex') ui.bsub = 'exercices'; if (old === 'lib') ui.bsub = 'seances'; if (old === 'strava') ui.psub = 'strava'; }
   if (!['agenda','stats','biblio','param'].includes(ui.tab)) ui.tab = 'agenda';
-  const head = me.role === 'coach'
-    ? `<div class="crumb"><button class="btn sm" data-a="home">← Athlètes</button><b>${esc(a.name)}</b></div>`
+  const head = me.role === 'developpeur'
+    ? `<div class="crumb"><button class="btn sm" data-a="home">← Utilisateurs</button><b>${esc(a.name)}</b></div>`
     : '';
   let body;
   if (ui.tab === 'stats'){
@@ -2162,7 +2162,7 @@ function bilanTotals(s){ return `<td>Total</td><td colspan="3">${fmtC(sum(realZo
 // Adhérent : lecture par défaut, crayon pour modifier. Coach : édition par défaut, œil pour la lecture.
 function isReadMode(s){
   if (!canEdit(s)) return true;
-  return me.role === 'coach' ? ui.sessRead === s.id : ui.sessEdit !== s.id;
+  return me.role === 'developpeur' ? ui.sessRead === s.id : ui.sessEdit !== s.id;
 }
 function durReadTxt(st){
   if (st.mode === 'dist'){ const m = distMeters(st); return !m ? '' : m >= 1000 ? (m/1000).toFixed(m % 1000 ? 1 : 0).replace('.', ',') + ' km' : Math.round(m) + ' m'; }
@@ -2618,7 +2618,7 @@ function exercisesView(){
 /* ===================== Profil & zones ===================== */
 const SPORT3 = [['run','CAP'],['bike','Vélo'],['swim','Natation']];
 function profileView(aid){
-  const u = getUser(aid), P = getParams(u), ro = (me.role === 'coach' || aid === me.id) ? '' : 'disabled';
+  const u = getUser(aid), P = getParams(u), ro = (me.role === 'developpeur' || aid === me.id) ? '' : 'disabled';
   const sel = ui.profSport || 'run';
   const inp = (sp, k, ph, w) => `<input data-p="${sp}.${k}" value="${esc(P[sp][k] || '')}" placeholder="${ph}" ${ro} style="width:${w||88}px">`;
   const card = (sp, lab, refField) => {
@@ -2997,7 +2997,7 @@ function libPlansView(aid){
     </div></section>
     <section class="zone zrecap"><div class="zhead"><span class="ztitle">Enregistrés</span></div><div class="zbody">
       <div class="pcards">${plans || '<div class="empty">Aucun plan.</div>'}</div>
-      ${me.role === 'coach' ? '<div class="hint">Pour créer un plan type à partir de l\'agenda d\'un athlète : onglet Semaine → « ★ Enregistrer comme plan type ».</div>' : ''}
+      ${me.role === 'developpeur' ? '<div class="hint">Pour créer un plan type à partir de l\'agenda d\'un athlète : onglet Semaine → « ★ Enregistrer comme plan type ».</div>' : ''}
     </div></section>
     ${planAllowed(g.type) ? `<section class="zone zsess"><div class="zhead"><span class="ztitle">Plan sélectionné</span></div><div class="zbody">
       <div class="ztxt" style="margin:2px 0 4px">Ajustez les semaines, les séances et la date de début, puis appliquez.</div>
@@ -3017,7 +3017,7 @@ function libSessionsView(aid){
     </div>`; }).join('');
   return `${filtersHTML(ui.lf, 'lib', tpls.length)}
     ${rows || '<div class="empty">Aucune séance type ne correspond à ces filtres.</div>'}
-    ${me.role==='coach' ? '<div class="hint">Pour ajouter une séance à cette bibliothèque : ouvrez-la dans l\'onglet Semaine, puis bouton ★ (titre, type, niveau).</div>' : ''}`;
+    ${me.role === 'developpeur' ? '<div class="hint">Pour ajouter une séance à cette bibliothèque : ouvrez-la dans l\'onglet Semaine, puis bouton ★ (titre, type, niveau).</div>' : ''}`;
 }
 
 /* ===================== Strava ===================== */
@@ -3253,9 +3253,9 @@ function toast(msg){ let t = document.getElementById('toast'); if (!t){ t = docu
   t.textContent = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.display = 'none', 2600); }
 
 function coachHome(){
-  const aths = state.users.filter(u => u.role === 'athlete' && u.approved);
+  const aths = state.users.filter(u => u.role === 'utilisateur' && u.approved);
   const pend = pendingCount();
-  return `<div class="row" style="justify-content:space-between;margin-top:6px"><h2>Mes athlètes</h2>${pend ? `<button class="btn sm" data-a="accounts">${pend} compte(s) à valider</button>` : ''}</div>
+  return `<div class="row" style="justify-content:space-between;margin-top:6px"><h2>Utilisateurs</h2>${pend ? `<button class="btn sm" data-a="accounts">${pend} compte(s) à valider</button>` : ''}</div>
     ${weekNav()}
     <div class="cards">${aths.map(a => {
       const real = weekTable(a.id, ui.week, 'realise'), plan = weekTable(a.id, ui.week, 'prevu');
@@ -3310,10 +3310,10 @@ function accountsView(){
   <div class="pane dense" style="margin-top:8px"><table class="rep">
     <thead><tr><th>Nom</th><th>Rôle</th><th>Abonnement</th><th>Strava</th><th>Statut</th><th></th></tr></thead>
     <tbody>${others.map(u => `<tr>
-      <td><b>${esc(u.name)}</b>${u.login ? `<div class="ztxt" style="font-size:.75rem">identifiant : ${esc(u.login)}</div>` : ''}</td><td>${u.role === 'coach' ? 'Coach' : 'Adhérent'}</td><td style="white-space:nowrap">${licSelectHTML(u)}</td>
+      <td><b>${esc(u.name)}</b>${u.login ? `<div class="ztxt" style="font-size:.75rem">identifiant : ${esc(u.login)}</div>` : ''}</td><td>${u.role === 'developpeur' ? 'Développeur' : 'Utilisateur'}</td><td style="white-space:nowrap">${licSelectHTML(u)}</td>
       <td>${u.strava ? '<span class="strava">●</span> relié' : '—'}</td>
-      <td>${u.role === 'coach' || u.approved ? '<span class="ok">Validé</span>' : '<span class="warn">En attente</span>'}</td>
-      <td style="text-align:right">${u.role === 'coach' ? '' : (u.approved
+      <td>${u.role === 'developpeur' || u.approved ? '<span class="ok">Validé</span>' : '<span class="warn">En attente</span>'}</td>
+      <td style="text-align:right">${u.role === 'developpeur' ? '' : (u.approved
         ? `<button class="btn sm" data-a="unapprove" data-id="${u.id}">Suspendre</button>`
         : `<button class="btn sm primary" data-a="approve" data-id="${u.id}">Valider</button>`) + (me.developer && u.login ? ` <button class="btn sm" title="Nouveau mot de passe" data-a="devpw" data-id="${u.id}">🔑</button>` : '') + ` <button class="btn sm danger" data-a="deluser" data-id="${u.id}">Supprimer</button>`}</td>
     </tr>`).join('') || '<tr><td colspan="6" class="ztxt">Aucun autre compte pour l\'instant.</td></tr>'}</tbody>
@@ -3443,7 +3443,7 @@ document.addEventListener('click', e => {
     case 'sendmsg': {
       const t = ((document.getElementById('msgtxt') || {}).value || '').trim(); if (!t || !s) break;
       sendMsg(s, t); render(); toast('Message envoyé : ' + (s.athleteId === me.id ? 'votre coach' : getUser(s.athleteId).name) + ' sera notifié'); break; }
-    case 'back': ui.view = me.role === 'coach' ? 'athlete' : 'home'; ui.sessionId = null; render(); break;
+    case 'back': ui.view = me.role === 'developpeur' ? 'athlete' : 'home'; ui.sessionId = null; render(); break;
     case 'stab': ui.stab = el.dataset.v; render(); break;
     case 'new': pendingDate = el.dataset.d; openTplPicker('new'); break;
     case 'loadtpl': openTplPicker('replace'); break;
@@ -3626,7 +3626,7 @@ document.addEventListener('click', e => {
     case 'installinfo': e.preventDefault(); installInfo(); break;
     case 'copyurl': navigator.clipboard && navigator.clipboard.writeText(location.href.split('#')[0]).then(() => toast('Adresse copiée')); break;
     case 'infohide': ui.infoHidden = todayYmd(); render(); break;
-    case 'tipsgo': if (me.role === 'coach' && ui.view !== 'athlete'){ ui.view = 'athlete'; ui.athleteId = ui.athleteId || ((state.users.find(u => u.role === 'athlete') || me).id); } ui.tab = 'biblio'; ui.bsub = 'astuces'; render(); break;
+    case 'tipsgo': if (me.role === 'developpeur' && ui.view !== 'athlete'){ ui.view = 'athlete'; ui.athleteId = ui.athleteId || ((state.users.find(u => u.role === 'utilisateur') || me).id); } ui.tab = 'biblio'; ui.bsub = 'astuces'; render(); break;
     case 'tipnext': ui.tipOff = (ui.tipOff || 0) + 1; render(); break;
     case 'tipdisc': ui.tipDisc = el.dataset.id; { const sel = document.getElementById('tip-disc'); if (sel) sel.value = ui.tipDisc; } refreshTipList(); break;
     case 'tipadd': {
@@ -3771,7 +3771,7 @@ async function startSession(){
   if (error || !prof){ ui.authErr = 'Profil introuvable. Réessayez dans un instant.'; me = null; render(); return; }
   me = userFrom(prof); state = null; render();
   try {
-    if (me.role === 'coach' || me.approved) await loadAll();
+    if (me.role === 'developpeur' || me.approved) await loadAll();
     else state = {users:[me], sessions:[], library:{sessions:[], plans:[]}};
   } catch(e){ $app.innerHTML = '<div class="loading">Erreur de chargement : ' + esc(e.message || e) + '</div>'; return; }
   render();
