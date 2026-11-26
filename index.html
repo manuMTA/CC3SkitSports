@@ -504,9 +504,9 @@ table.it td.na{color:#c3ccd5}
 .mic.new:after{content:"";position:absolute;top:-2px;right:-3px;width:7px;height:7px;border-radius:50%;background:#e2453c;border:1px solid #fff}
 .bell{position:relative}
 .thread{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto;margin:4px 0}
-.msg{background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:.8rem;max-width:92%;color:#1d2a36;font-weight:400}
-.msg.me{align-self:flex-end;background:#e8f1f8;border-color:#c8dcec}
-.msg .mh{display:flex;gap:8px;align-items:baseline;font-size:.72rem}.msg .mh small{color:var(--muted)}
+.thread .msg{background:#fff;border:1px solid var(--line);border-radius:10px;padding:5px 8px;font-size:.8rem;max-width:92%;color:#1d2a36;font-weight:400}
+.thread .msg.me{align-self:flex-end;background:#e8f1f8;border-color:#c8dcec}
+.thread .msg .mh{display:flex;gap:8px;align-items:baseline;font-size:.72rem}.msg .mh small{color:var(--muted)}
 .msgnew{display:flex;gap:6px;align-items:flex-end;margin-top:4px}.msgnew textarea{flex:1;min-height:38px}
 .nlist{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
 .nrow{display:flex;gap:10px;align-items:center;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font:inherit;width:100%}
@@ -552,6 +552,10 @@ table.it td.na{color:#c3ccd5}
   .zone>.zbody{padding:6px}
   .topbar .wrap{padding-top:env(safe-area-inset-top)}
 }
+.instlink{display:block;text-align:center;margin-top:10px;padding:8px;border:1px dashed #b9cbe0;border-radius:10px;font-size:.84rem;color:var(--accent);text-decoration:none;font-weight:600}
+.instlink:hover{text-decoration:underline}
+.insturl{word-break:break-all}
+@media (max-width:600px){.instl span{display:none}}
 </style>
 </head>
 <body>
@@ -1346,6 +1350,7 @@ function render(){
     ${me.role === 'coach' ? `<button class="btn dark sm" data-a="home">Athlètes</button><button class="btn dark sm" data-a="accounts">Comptes${pendingCount() ? `<span class="badge">${pendingCount()}</span>` : ''}</button>` : ''}
     <div class="spacer"></div>
     <span class="who" id="savestate" style="font-size:.75rem;opacity:.6"></span>
+    ${isStandalone() ? '' : '<button class="btn dark sm instl" data-a="installinfo" title="Installer l\'application sur votre smartphone">📲 <span>App</span></button>'}
     <button class="btn dark sm bell" id="bell" data-a="notifs" title="Notifications">${bellHTML()}</button>
     <div class="who">${esc(me.name)} · ${me.role === 'coach' ? 'Coach' : 'Adhérent'}</div>
     <button class="btn dark sm" data-a="logout">Déconnexion</button>
@@ -1385,6 +1390,7 @@ function loginView(){
     <div class="err" id="err" style="margin-top:8px">${esc(ui.authErr || '')}</div>
     <div class="msg" id="msg">${esc(ui.authMsg || '')}</div>
     <div class="pwrd">Compatible avec Strava</div>
+    ${isStandalone() ? '' : '<a href="#" class="instlink" data-a="installinfo">📲 Installer l\'application sur votre smartphone</a>'}
   </form></div>`;
 }
 function pendingView(){
@@ -1696,6 +1702,18 @@ const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _installEvt = e; if (typeof render === 'function' && me) render(); });
 window.addEventListener('appinstalled', () => { _installEvt = null; toast('Application installée'); });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+function installInfo(){
+  if (_installEvt){ _installEvt.prompt(); _installEvt.userChoice.finally(() => { _installEvt = null; if (me) render(); }); return; }
+  const url = location.href.split('#')[0];
+  openModal(`<h3>📲 Installer l'application sur votre smartphone</h3>
+    <div class="insthelp">
+      <div><b>iPhone / iPad</b> : ouvrez ce site dans <b>Safari</b>, touchez <b>Partager</b> <span class="ishare">⎋</span> puis <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</div>
+      <div><b>Android</b> : ouvrez ce site dans <b>Chrome</b>, menu <b>⋮</b> puis <b>« Installer l'application »</b> (ou « Ajouter à l'écran d'accueil »).</div>
+      <div>Adresse à ouvrir sur le téléphone : <b class="insturl">${esc(url)}</b> <button class="btn sm" data-a="copyurl">Copier</button></div>
+      <div class="ztxt">L'icône CC3S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran et se met à jour toute seule. Vous vous connectez avec le même compte.</div>
+    </div>
+    <div style="text-align:right;margin-top:10px"><button class="btn" data-a="mclose">Fermer</button></div>`);
+}
 function installHTML(){
   if (isStandalone()) return `<div class="pane dense" style="margin-top:8px"><h4>📱 Application</h4><span class="ok">✓ Vous utilisez l'application installée.</span></div>`;
   return `<div class="pane dense" style="margin-top:8px"><h4>📱 Installer l'application sur votre téléphone</h4>
@@ -3355,6 +3373,8 @@ document.addEventListener('click', e => {
     case 'asadd': if (s && canEdit(s)){ s.bilan.as = s.bilan.as || []; if (!s.bilan.as.length) s.bilan.as.push({t:'', dur:'', pace:''}); s.bilan.as.push({t:'', dur:'', pace:''}); save(); render(); } break;
     case 'asdel': if (s && canEdit(s)){ (s.bilan.as || []).splice(+el.dataset.i, 1); save(); render(); } break;
     case 'install': if (_installEvt){ _installEvt.prompt(); _installEvt.userChoice.finally(() => { _installEvt = null; render(); }); } break;
+    case 'installinfo': e.preventDefault(); installInfo(); break;
+    case 'copyurl': navigator.clipboard && navigator.clipboard.writeText(location.href.split('#')[0]).then(() => toast('Adresse copiée')); break;
     case 'viewas': ui.viewAs = el.dataset.id; ui.sessionId = null; render(); break;
     case 'exportfit': if (s) exportFit(s); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
