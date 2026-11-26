@@ -2,8 +2,16 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CC3S Kit Triathlon — suivi coach & athlètes</title>
+<meta name="theme-color" content="#16202b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CC3S Tri">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -536,6 +544,14 @@ table.it td.na{color:#c3ccd5}
 .asstat.empty{padding:5px 10px;font-size:.76rem;color:var(--muted)}
 .asstat table.stt th,.asstat table.stt td{padding:2px 8px}
 .asdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.insthelp{display:flex;flex-direction:column;gap:5px;font-size:.84rem;margin-top:6px}
+.ishare{display:inline-block;transform:rotate(-90deg)}
+@media (max-width:600px){
+  .zone{flex-direction:column}
+  .zone>.zhead{writing-mode:horizontal-tb;transform:none;flex:0 0 auto;justify-content:flex-start;padding:3px 10px}
+  .zone>.zbody{padding:6px}
+  .topbar .wrap{padding-top:env(safe-area-inset-top)}
+}
 </style>
 </head>
 <body>
@@ -1673,6 +1689,23 @@ async function refreshMsgs(){
   const b = document.getElementById('bell'); if (b) b.innerHTML = bellHTML();
 }
 setInterval(() => { if (me && state && !document.hidden) refreshMsgs().catch(() => {}); }, 60000);
+/* ===================== Application installable (iOS / Android) ===================== */
+let _installEvt = null;
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _installEvt = e; if (typeof render === 'function' && me) render(); });
+window.addEventListener('appinstalled', () => { _installEvt = null; toast('Application installée'); });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+function installHTML(){
+  if (isStandalone()) return `<div class="pane dense" style="margin-top:8px"><h4>📱 Application</h4><span class="ok">✓ Vous utilisez l'application installée.</span></div>`;
+  return `<div class="pane dense" style="margin-top:8px"><h4>📱 Installer l'application sur votre téléphone</h4>
+    ${_installEvt ? `<button class="btn primary" data-a="install">Installer CC3S Kit Triathlon</button>` : ''}
+    <div class="insthelp">
+      <div><b>iPhone / iPad</b> : ouvrez le site dans <b>Safari</b>, touchez <b>Partager</b> <span class="ishare">⎋</span> puis <b>« Sur l'écran d'accueil »</b>.</div>
+      <div><b>Android</b> : ouvrez le site dans <b>Chrome</b>, menu <b>⋮</b> puis <b>« Installer l'application »</b> (ou « Ajouter à l'écran d'accueil »).</div>
+      <div class="ztxt">L'icône CC3S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran, sans barre de navigateur.</div>
+    </div></div>`;
+}
 function athleteView(){
   const aid = curAid();
   const a = getUser(aid);
@@ -1690,7 +1723,7 @@ function athleteView(){
     body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices']]) +
       (ui.bsub === 'plans' ? libPlansView(aid) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? '' : lockBox('library', true)) + libSessionsView(aid));
   } else if (ui.tab === 'param'){
-    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement'],['partage','Partage'],['compte','Mon compte']]) + (ui.psub === 'partage' ? (aid === me.id ? shareView() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le partage se règle depuis le compte de la personne.</p></div>') : (ui.psub === 'compte' ? (aid === me.id ? pwFormHTML() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le mot de passe se change depuis le compte de la personne.</p></div>') : ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid)));
+    body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement'],['partage','Partage'],['compte','Mon compte']]) + (ui.psub === 'partage' ? (aid === me.id ? shareView() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le partage se règle depuis le compte de la personne.</p></div>') : (ui.psub === 'compte' ? (aid === me.id ? pwFormHTML() + installHTML() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le mot de passe se change depuis le compte de la personne.</p></div>') : ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid)));
   } else body = weekPage(aid);
   return `${head}
     <div class="tabs">
@@ -3321,6 +3354,7 @@ document.addEventListener('click', e => {
     case 'editmode': if (s){ if (isReadMode(s)){ ui.sessEdit = s.id; ui.sessRead = null; } else { ui.sessRead = s.id; ui.sessEdit = null; } render(); } break;
     case 'asadd': if (s && canEdit(s)){ s.bilan.as = s.bilan.as || []; if (!s.bilan.as.length) s.bilan.as.push({t:'', dur:'', pace:''}); s.bilan.as.push({t:'', dur:'', pace:''}); save(); render(); } break;
     case 'asdel': if (s && canEdit(s)){ (s.bilan.as || []).splice(+el.dataset.i, 1); save(); render(); } break;
+    case 'install': if (_installEvt){ _installEvt.prompt(); _installEvt.userChoice.finally(() => { _installEvt = null; render(); }); } break;
     case 'viewas': ui.viewAs = el.dataset.id; ui.sessionId = null; render(); break;
     case 'exportfit': if (s) exportFit(s); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;

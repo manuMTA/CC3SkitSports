@@ -1,0 +1,18 @@
+{
+  "name": "CC3S Kit Triathlon",
+  "short_name": "CC3S Tri",
+  "description": "Suivi d'entraînement natation, vélo, course à pied et renforcement, pour coachs et athlètes.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16202b",
+  "theme_color": "#16202b",
+  "categories": ["sports", "health", "fitness"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
