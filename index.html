@@ -1263,8 +1263,8 @@ const SITE_URL = (CFG.siteUrl || (location.origin + location.pathname)).replace(
 let snap = {sessions:new Map(), users:new Map(), libS:new Map(), libP:new Map()};
 const J = o => JSON.stringify(o);
 
-const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null, trialUntil:r.trial_until || null, shareOption:!!r.share_option, developer:r.role === 'developpeur', login:r.login || ''});
-const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null, share_option:!!u.shareOption});
+const userFrom = r => ({id:r.id, name:r.name || 'Sans nom', role:r.role, approved:r.approved, strava:!!r.strava_id, hr:{z1:r.hr_z1, z2:r.hr_z2}, params:r.params || {}, lastSync:r.last_sync, license:r.license || 'basique', licenseUntil:r.license_until || null, trialUntil:r.trial_until || null, developer:r.role === 'developpeur', login:r.login || ''});
+const userTo = u => ({id:u.id, name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null});
 const sessFrom = r => ({id:r.id, athleteId:r.athlete_id, date:r.date, sport:r.sport, title:r.title, blocks:r.blocks || [], bilan:(r.bilan && r.bilan.zones) ? r.bilan : emptyBilan(), stravaId:r.strava_activity_id, optional:!!(r.opts && r.opts.optional), chain:!!(r.opts && r.opts.chain), ord:(r.opts && r.opts.ord != null) ? r.opts.ord : undefined});
 const sessTo = s => ({id:s.id, athlete_id:s.athleteId, date:s.date, sport:s.sport, title:s.title, blocks:s.blocks, bilan:s.bilan, opts:{optional:!!s.optional, chain:!!s.chain, ord:s.ord ?? null}});
 const libSFrom = r => ({ownerId:r.owner_id, id:r.id, sport:r.sport, title:r.title, desc:r.descr, blocks:r.blocks, custom:r.custom, cat:r.cat || undefined, lvl:r.lvl || undefined});
@@ -1325,7 +1325,7 @@ async function flush(){
     for (const u of state.users){
       const v = J(userTo(u));
       if (snap.users.get(u.id) === v) continue;
-      const row = me.role === 'developpeur' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null, share_option:!!u.shareOption} : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
+      const row = me.role === 'developpeur' ? {name:u.name, approved:u.approved, hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}, license:u.license || 'basique', license_until:u.licenseUntil || null, trial_until:u.trialUntil || null } : {hr_z1:u.hr.z1, hr_z2:u.hr.z2, params:u.params || {}};
       const r = await sb.from('profiles').update(row).eq('id', u.id);
       if (r.error) throw r.error;
       snap.users.set(u.id, v);
@@ -1543,11 +1543,11 @@ function subNav(key, opts){
   return `<div class="seg subnav">${opts.map(([k, l]) => `<button class="${ui[key] === k ? 'on' : ''}" data-a="sub" data-k="${key}" data-v="${k}">${l}</button>`).join('')}</div>`;
 }
 
-/* ===================== Accès : Basic, Standard, Coach (+ option partage) ===================== */
+/* ===================== Accès : Basic, Standard, Coach ===================== */
 // Basic (gratuit) : agenda, séances simples, bilans, statistiques, import, profil + 3 séances débutant par discipline, pas de plans.
 // Standard : toutes les séances types et tous les plans, sans créer ni personnaliser ses propres plans.
 // Coach : tout, y compris générer et enregistrer ses plans personnalisés.
-const PRICE = '15 €', PRICE_SHARE = '';  // tarifs (non affichés dans l'interface)
+const PRICE = '15 €';  // tarifs (non affichés dans l'interface)
 const FEATURES = {
   agenda:'Agenda et séances', simple:'Séances simples (temps Z1, Z2, Z3)', bilan:'Bilans séance, semaine et mois', stats:'Statistiques et évolution', fileImport:'Import GPX / TCX', profil:'Profil et zones',
   freeLib:'3 séances types débutant par discipline',
@@ -1578,11 +1578,12 @@ function subStatus(u){
   if (['standard','complete'].includes(u.license) && ok) return 'standard';
   return 'gratuit';
 }
-const hasShareOpt = u => !!u && (u.role === 'developpeur' || !!u.shareOption);
+// Suivre l'entraînement d'un autre utilisateur : réservé à l'abonnement Coach (et au compte développeur)
+const isCoachTier = u => !!u && ['coach','admin'].includes(subStatus(u));
 const STATUS_LABEL = {admin:'Développeur', coach:'Coach', standard:'Standard', gratuit:'Basic'};
 const STATUS_COLOR = {admin:'#1f3f5f', coach:'#1f7fbf', standard:'#2f9461', gratuit:'#7d8b99'};
-const statusBadge = u => { const st = subStatus(u); return `<span class="stbadge" style="background:${STATUS_COLOR[st]}">${STATUS_LABEL[st]}</span>${u && u.role !== 'developpeur' && u.shareOption ? ' <span class="stbadge" style="background:#8e44ad">Partage</span>' : ''}`; };
-function refreshLicense(){ const st = subStatus(me); LIC = licFor(st, {share:hasShareOpt(me)}); }
+const statusBadge = u => { const st = subStatus(u); return `<span class="stbadge" style="background:${STATUS_COLOR[st]}">${STATUS_LABEL[st]}</span>${false ? ' <span class="stbadge" style="background:#8e44ad">Partage</span>' : ''}`; };
+function refreshLicense(){ const st = subStatus(me); LIC = licFor(st); }
 const has = f => LIC.features.has(f);
 const tierFor = f => TIER_FEATURES.standard.includes(f) ? 'standard' : 'coach';
 function lockBox(f, compact){
@@ -1607,7 +1608,8 @@ function offerTable(st){
   const cur = st === 'admin' ? 'coach' : st, cols = ['gratuit','standard','coach'];
   const rows = Object.keys(FEATURES).map(f => `<tr><td>${esc(FEATURES[f])}</td>${cols.map(c => `<td style="text-align:center" class="${cur === c ? 'curcol' : ''}">${TIER_FEATURES[c].includes(f) ? '✓' : '—'}</td>`).join('')}</tr>`).join('');
   return `<table class="rep lictab"><thead><tr><th></th>${cols.map(c => `<th style="text-align:center" class="${cur === c ? 'curcol' : ''}">${STATUS_LABEL[c]}</th>`).join('')}</tr></thead><tbody>${rows}
-    <tr><td>Option : partager son entraînement avec un coach</td><td colspan="3" style="text-align:center">en option</td></tr></tbody></table>`;
+    <tr><td>Partager son entraînement avec un coach (abonné Coach)</td>${cols.map(c => `<td style="text-align:center" class="${cur === c ? 'curcol' : ''}">✓</td>`).join('')}</tr>
+    <tr><td>Suivre l'entraînement des personnes qui le partagent</td>${cols.map(c => `<td style="text-align:center" class="${cur === c ? 'curcol' : ''}">${c === 'coach' ? '✓' : '—'}</td>`).join('')}</tr></tbody></table>`;
 }
 // Écran « Abonnement » (Paramétrage)
 function aboView(aid){
@@ -1616,31 +1618,29 @@ function aboView(aid){
     <div class="licrow"><span>${mine ? 'Votre accès' : esc(u.name)} : ${statusBadge(u)} ${st !== 'gratuit' && u.licenseUntil ? `<span class="ztxt">jusqu'au ${frDate(u.licenseUntil)}</span>` : ''}</span>
       ${mine && st === 'gratuit' ? `<button class="btn primary" data-a="upgrade" data-v="standard">Passer en Standard</button>` : ''}
       ${mine && st !== 'coach' ? `<button class="btn ${st === 'gratuit' ? '' : 'primary'}" data-a="upgrade" data-v="coach">Passer en Coach</button>` : ''}
-      ${mine && !u.shareOption ? `<button class="btn" data-a="upgrade" data-v="share">Ajouter l'option partage</button>` : ''}
-      ${mine && (st !== 'gratuit' || u.shareOption) && CFG.portailAbonnement ? `<a class="btn" href="${esc(CFG.portailAbonnement)}" target="_blank" rel="noopener">Gérer ou résilier</a>` : ''}
+      ${mine && st !== 'gratuit' && CFG.portailAbonnement ? `<a class="btn" href="${esc(CFG.portailAbonnement)}" target="_blank" rel="noopener">Gérer ou résilier</a>` : ''}
       ${!mine && me.role === 'developpeur' && u.role !== 'developpeur' ? '<span class="ztxt">L\'accès se modifie dans l\'écran Comptes.</span>' : ''}</div>
     <div style="margin-top:8px">${offerTable(st)}</div>
   </div>`;
 }
-// Comptes (administrateur) : Basic / Standard / Coach, et option partage
+// Comptes (développeur) : Basic / Standard / Coach
 function licSelectHTML(u){
   if (u.role === 'developpeur') return statusBadge(u);
   const st = subStatus(u);
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-    <select data-lic="${u.id}" style="width:auto!important" title="Accès">${[['basique','Basic','gratuit'],['standard','Standard','standard'],['coach','Coach','coach']].map(([v, l, s]) => `<option value="${v}" ${st === s ? 'selected' : ''}>${l}</option>`).join('')}</select>
-    <label class="chk" title="Option partage avec un coach"><input type="checkbox" data-shareopt="${u.id}" ${u.shareOption ? 'checked' : ''}> Partage</label></div>`;
+    <select data-lic="${u.id}" style="width:auto!important" title="Accès">${[['basique','Basic','gratuit'],['standard','Standard','standard'],['coach','Coach','coach']].map(([v, l, s]) => `<option value="${v}" ${st === s ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
 }
 document.addEventListener('change', e => {
-  const el = e.target, id = el.dataset.lic || el.dataset.shareopt; if (!id || !me || me.role !== 'developpeur') return;
+  const el = e.target, id = el.dataset.lic; if (!id || !me || me.role !== 'developpeur') return;
   const u = getUser(id); if (!u) return;
-  if (el.dataset.lic){ u.license = el.value; u.licenseUntil = null; } else u.shareOption = el.checked;
-  save(); render(); toast(`${u.name} : ${STATUS_LABEL[subStatus(u)]}${u.shareOption ? ' + partage' : ''}`);
+  u.license = el.value; u.licenseUntil = null;
+  save(); render(); toast(`${u.name} : ${STATUS_LABEL[subStatus(u)]}`);
 });
 
 /* ---------- Partage de l'entraînement avec un coach ---------- */
 const sharesOf = () => (state && state.shares) || [];
 const myViewers = () => sharesOf().filter(x => x.ownerId === me.id).map(x => getUser(x.viewerId)).filter(Boolean);
-const followedIds = () => me ? sharesOf().filter(x => x.viewerId === me.id && getUser(x.ownerId)).map(x => x.ownerId) : [];
+const followedIds = () => me && isCoachTier(me) ? sharesOf().filter(x => x.viewerId === me.id && getUser(x.ownerId)).map(x => x.ownerId) : [];
 // Athlète affiché : le coach choisit ; un utilisateur voit le sien ou celui d'une personne qui le partage avec lui
 function curAid(){
   if (!me) return null;
@@ -1653,13 +1653,11 @@ function viewAsBar(){
   return `<div class="viewas">Entraînement affiché : <button class="${cur === me.id ? 'on' : ''}" data-a="viewas" data-id="${me.id}">Le mien</button>${f.map(id => `<button class="${cur === id ? 'on' : ''}" data-a="viewas" data-id="${id}">${esc(getUser(id).name)}</button>`).join('')}</div>`;
 }
 function shareView(){
-  if (!hasShareOpt(me)) return `<div class="pane dense"><h4>Partager avec un coach</h4>
-    <div class="lockbox"><b>🔒 Option partage</b><span>Permet à votre coach (un autre utilisateur de l'application) de voir et modifier votre plan d'entraînement, vos séances et vos bilans. <a href="#" data-a="upgrade" data-v="share">Ajouter l'option</a></span></div></div>`;
   const v = myViewers();
-  return `<div class="pane dense"><h4>Partager avec un coach</h4>
-    <p class="ztxt" style="margin:0 0 6px">La personne doit avoir un compte. Elle verra et pourra modifier votre agenda, vos séances et vos bilans. Vous pouvez retirer l'accès à tout moment.</p>
+  return `<div class="pane dense"><h4>Partager avec mon coach</h4>
+    <p class="ztxt" style="margin:0 0 6px">Votre coach doit avoir un compte avec l'<b>abonnement Coach</b>. Il verra et pourra modifier votre agenda, vos séances et vos bilans. Vous pouvez retirer l'accès à tout moment.</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap"><input id="shareTarget" placeholder="e-mail ou identifiant de votre coach" style="width:280px!important"><button class="btn sm primary" data-a="shareadd">Partager</button></div>
-    <div style="margin-top:8px">${v.length ? v.map(u => `<div class="shrow">👤 <b>${esc(u.name)}</b> a accès à votre entraînement <button class="ib red" title="Retirer l'accès" data-a="unshare" data-id="${u.id}">✕</button></div>`).join('') : '<span class="ztxt">Aucun partage pour le moment.</span>'}</div>
+    <div style="margin-top:8px">${v.length ? v.map(u => `<div class="shrow">👤 <b>${esc(u.name)}</b> a accès à votre entraînement${isCoachTier(u) ? '' : ' <span class="ztxt">(en pause : son abonnement Coach n\'est plus actif)</span>'} <button class="ib red" title="Retirer l'accès" data-a="unshare" data-id="${u.id}">✕</button></div>`).join('') : '<span class="ztxt">Aucun partage pour le moment.</span>'}</div>
   </div>`;
 }
 
@@ -3288,7 +3286,7 @@ function devFormHTML(){
       <div><label>Prénom et nom</label><input id="dv-name"></div>
       <div><label>Identifiant</label><input id="dv-login" autocapitalize="none" placeholder="ex. julie.m"></div>
       <div><label>Mot de passe provisoire</label><input id="dv-pw" placeholder="8 caractères min."></div>
-      <div><label>Accès</label><select id="dv-lic"><option value="basique">Basic</option><option value="standard">Standard (offert)</option><option value="coach">Coach (offert)</option></select><label class="chk" style="margin-top:3px"><input type="checkbox" id="dv-share"> option partage</label></div>
+      <div><label>Accès</label><select id="dv-lic"><option value="basique">Basic</option><option value="standard">Standard (offert)</option><option value="coach">Coach (offert)</option></select></div>
       <div><button class="btn primary" data-a="devcreate" ${ui.devBusy ? 'disabled' : ''}>${ui.devBusy ? 'Création…' : 'Créer le compte'}</button></div>
     </div>
     <p class="ztxt" style="margin:6px 0 0;font-size:.78rem">Le compte est validé immédiatement. La personne se connecte avec son identifiant et peut changer son mot de passe dans Paramétrage → Mon compte. Mot de passe oublié : bouton 🔑 dans la liste.</p>
@@ -3587,7 +3585,7 @@ document.addEventListener('click', e => {
       break; }
     case 'devcreate': {
       const g = id => document.getElementById(id).value.trim();
-      const body = {action:'createuser', name:g('dv-name'), login:g('dv-login'), password:document.getElementById('dv-pw').value, license:g('dv-lic'), share:document.getElementById('dv-share').checked};
+      const body = {action:'createuser', name:g('dv-name'), login:g('dv-login'), password:document.getElementById('dv-pw').value, license:g('dv-lic')};
       ui.devBusy = true; render();
       devCall(body).then(async () => { ui.devBusy = false; await loadAll(); render(); toast(`Compte créé : identifiant « ${body.login.toLowerCase()} »`); })
         .catch(err => { ui.devBusy = false; render(); ['dv-name','dv-login','dv-pw','dv-lic'].forEach(k => { const el = document.getElementById(k); if (el) el.value = k === 'dv-lic' ? body.license : k === 'dv-pw' ? body.password : body[k.slice(3)]; }); toast('Création impossible : ' + (err.message || err)); });
@@ -3602,7 +3600,7 @@ document.addEventListener('click', e => {
       devCall({action:'setpassword', user_id:el.dataset.id, password:pw}).then(() => { closeModal(); toast('Mot de passe modifié : communiquez-le à la personne'); }).catch(err => toast('Échec : ' + (err.message || err)));
       break; }
     case 'upgrade': {
-      const v = el.dataset.v, url = v === 'share' ? CFG.paiementPartage : v === 'coach' ? CFG.paiementCoach : (CFG.paiementAbonnement || CFG.paiementStandard);
+      const v = el.dataset.v, url = v === 'coach' ? CFG.paiementCoach : (CFG.paiementAbonnement || CFG.paiementStandard);
       if (!url){ toast('Le paiement en ligne n\'est pas encore ouvert : contactez votre coach.'); break; }
       location.href = url + (url.includes('?') ? '&' : '?') + 'client_reference_id=' + encodeURIComponent(me.id);
       break; }
@@ -3611,7 +3609,7 @@ document.addEventListener('click', e => {
       sb.rpc('share_with', {target:t.trim()}).then(async ({data, error}) => {
         if (error){ toast('Échec : ' + error.message); return; }
         if (data === 'introuvable') toast('Aucun compte avec cet e-mail ou cet identifiant');
-        else if (data === 'option') toast('L\'option partage n\'est pas active sur votre compte');
+        else if (data === 'pascoach') toast('Ce compte n\'a pas l\'abonnement Coach : il ne peut pas suivre votre entraînement');
         else if (data === 'soi') toast('Indiquez le compte de votre coach, pas le vôtre');
         else { await loadAll(); render(); toast('Entraînement partagé avec ' + String(data).slice(3)); }
       }); break; }
