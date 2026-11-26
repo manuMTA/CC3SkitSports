@@ -556,6 +556,76 @@ table.it td.na{color:#c3ccd5}
 .instlink:hover{text-decoration:underline}
 .insturl{word-break:break-all}
 @media (max-width:600px){.instl span{display:none}}
+.agrow{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:8px;align-items:stretch}
+.wside{background:#f7fafc;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:.78rem;display:flex;flex-direction:column;gap:2px}
+.wsh{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;margin-bottom:2px}
+.wsl{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.wsl span{color:var(--muted);display:inline-flex;align-items:center;gap:3px}
+.wsl b{font-family:"Barlow Semi Condensed";font-size:1rem;color:var(--ink)}
+.wsl.big b{font-size:1.3rem}
+.wsl small{color:var(--muted);font-weight:400;font-size:.72rem}
+.wsl.sp span{color:inherit}
+.wssp{border-top:1px solid var(--line);margin-top:3px;padding-top:3px}
+.botnav{display:none}
+@media (max-width:760px){
+  .tabs{display:none}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:#16202b;padding:4px 4px calc(4px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+  .botnav button{flex:1;background:none;border:0;color:#9fb0c0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 0;font:inherit;border-radius:10px;cursor:pointer}
+  .botnav button .bi{font-size:1.25rem;line-height:1.1;filter:grayscale(.6)}
+  .botnav button .bl{font-size:.68rem;font-weight:600}
+  .botnav button.on{color:#fff;background:rgba(126,200,255,.16)}
+  .botnav button.on .bi{filter:none}
+  .agrow{grid-template-columns:1fr}
+  .wside{flex-direction:row;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+  .wside .wsh{width:100%}
+  .wssp{border-top:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 14px}
+  /* saisie de séance : une ligne = une carte, tout reste visible */
+  .blk .scroll{overflow:visible}
+  table.st,table.st tbody,table.st tr,table.st td{display:block;width:100%}
+  table.st{min-width:0!important;max-width:100%}
+  table.st thead{display:none}
+  table.st tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 26px;gap:4px 6px;padding:6px 0;border-bottom:1px solid #eef2f5}
+  table.st td{padding:0!important}
+  table.st td:nth-child(1){grid-column:1;grid-row:1}
+  table.st td:nth-child(2){grid-column:2;grid-row:1}
+  table.st td:nth-child(5){grid-column:3;grid-row:1}
+  table.st td:nth-child(3){grid-column:1/-1;grid-row:2}
+  table.st td:nth-child(4){grid-column:1/-1;grid-row:3}
+  table.st td input,table.st td select{min-width:0!important}
+  table.st .dur,table.st .crit{display:flex;gap:3px}
+  table.st .dur>*,table.st .crit>*{flex:1 1 auto;min-width:0}
+  table.st td:has(input[data-k="autre"]) input{min-width:0!important}
+  .sinfo{max-width:none}
+  .blk .bh{flex-wrap:wrap}
+  .shrow{flex-wrap:wrap}
+  .shrow .ti{flex:1 1 100%;order:-1}
+  .sopts{gap:4px 8px}
+  .rhead{flex-wrap:wrap}
+  .zsess .detail,.detail{grid-template-columns:minmax(0,1fr)!important}
+  .detail>.pane{min-width:0}
+  .bilanpane table.bz{width:100%;table-layout:fixed}
+  .bilanpane table.bz input{width:100%!important;min-width:0!important}
+  .rp10{display:grid!important;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+  .rp10 button{min-width:0!important;padding:5px 0!important}
+  .asrow{flex-wrap:wrap}
+}
+.nutbox{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.nutbox>input{flex:1 1 100%}
+.nutg{display:flex;align-items:center;gap:4px}.nutg input{width:60px!important}
+.infobar{display:flex;align-items:flex-start;gap:8px;border-radius:10px;padding:6px 10px;margin:6px 0 2px;font-size:.82rem;line-height:1.35}
+.infobar.k-tip{background:#fff8e1;border:1px solid #f3d27a}
+.infobar.k-info{background:#eaf3fb;border:1px solid #9cc3e4}
+.infobar .imore{white-space:nowrap;cursor:pointer;color:#1d5f99;font-weight:600;align-self:center}
+.ztips>.zhead{background:#fff4d6;color:#8a6100}
+.tipsearch{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}.tipsearch select{flex:0 1 240px}.tipsearch input{flex:1 1 220px}
+.tipchips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}.tchip{border:1px solid #ccd3dc;background:#fff;border-radius:14px;padding:2px 10px;font-size:.78rem;cursor:pointer}.tchip.on{background:#1f2a37;color:#fff;border-color:#1f2a37}
+.tiplist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.tipc{background:#fff;border:1px solid #e3e7ec;border-left:4px solid;border-radius:8px;padding:7px 9px}
+.tiph{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;font-size:.88rem}.tipb{color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;font-weight:600}
+.tipa{margin-left:auto;display:flex;gap:3px}.tipt{font-size:.84rem;line-height:1.4;color:#334}.tipnew{margin-top:10px}
+.infobar .iic{font-size:1.05rem}.infobar .itx{flex:1}.infobar .itx b{margin-right:4px}
+.infoform{display:flex;flex-direction:column;gap:5px;max-width:640px}
 </style>
 </head>
 <body>
@@ -1168,6 +1238,8 @@ async function loadAll(){
     sb.from('library_plans').select('*').order('id')]);
   const err = p.error || s.error || ls.error || lp.error; if (err) throw err;
   state = {users:p.data.map(userFrom), sessions:s.data.map(sessFrom), library:{sessions:ls.data.map(libSFrom), plans:lp.data.map(libPFrom)}};
+  try { const tp = await sb.from('tips').select('*').order('id'); state.tips = tp.error ? null : tp.data; } catch(e){ state.tips = null; }
+  try { const inf = await sb.from('infos').select('*').eq('id', 'main').maybeSingle(); state.info = inf.error ? null : inf.data; } catch(e){ state.info = null; }
   try { const mg = await sb.from('messages').select('*'); state.messages = mg.error ? [] : (mg.data || []).map(msgFrom); } catch(e){ state.messages = []; }
   try { const sh = await sb.from('shares').select('*'); state.shares = sh.error ? [] : (sh.data || []).map(r => ({ownerId:r.owner_id, viewerId:r.viewer_id})); } catch(e){ state.shares = []; }
   me = getUser(me.id) || me;
@@ -1423,77 +1495,91 @@ function subNav(key, opts){
   return `<div class="seg subnav">${opts.map(([k, l]) => `<button class="${ui[key] === k ? 'on' : ''}" data-a="sub" data-k="${key}" data-v="${k}">${l}</button>`).join('')}</div>`;
 }
 
-/* ===================== Accès : gratuit, Standard, option partage ===================== */
-// Gratuit : agenda, séances simples, bilans, statistiques, import, profil + 9 séances classiques.
-// Standard (PRICE par mois) : tout. Option partage : un autre utilisateur (son coach) accède à l'entraînement.
+/* ===================== Accès : Basic, Standard, Coach (+ option partage) ===================== */
+// Basic (gratuit) : agenda, séances simples, bilans, statistiques, import, profil + 3 séances débutant par discipline, pas de plans.
+// Standard : toutes les séances types et tous les plans, sans créer ni personnaliser ses propres plans.
+// Coach : tout, y compris générer et enregistrer ses plans personnalisés.
 const PRICE = '15 €', PRICE_SHARE = '';  // tarifs (non affichés dans l'interface)
 const FEATURES = {
   agenda:'Agenda et séances', simple:'Séances simples (temps Z1, Z2, Z3)', bilan:'Bilans séance, semaine et mois', stats:'Statistiques et évolution', fileImport:'Import GPX / TCX', profil:'Profil et zones',
-  freeLib:'9 séances classiques et 3 plans (5 km, 10 km, triathlon XS débutant)',
-  detail:'Séances détaillées (blocs, intensités, graphique)', library:'Toutes les séances types (217)', plans:'Tous les plans types (CAP, trail, distance indéfinie, challenge, vélo, natation)', plansTri:'Plans triathlon XS, S, M, L, XXL',
-  customLib:'Enregistrer ses séances et plans types', exercises:'Exercices animés', watch:'Export des séances vers montre GPS (.fit)', stravaAuto:'Connexion Strava automatique'
+  freeLib:'3 séances types débutant par discipline',
+  detail:'Séances détaillées (blocs, intensités, graphique)', library:'Toute la bibliothèque de séances types', plans:'Tous les plans types (triathlon, CAP, trail, vélo, natation…)', plansTri:'Plans triathlon XS, S, M, L, XXL',
+  customLib:'Enregistrer ses propres séances types', exercises:'Exercices animés', watch:'Export des séances vers montre GPS (.fit)', stravaAuto:'Connexion Strava automatique',
+  customPlans:'Générer, personnaliser et enregistrer ses plans'
 };
-const FREE_FEATURES = ['agenda','simple','bilan','stats','fileImport','profil','freeLib'];
-const STD_FEATURES = Object.keys(FEATURES);
-// Les 9 séances classiques accessibles gratuitement
-const FREE_TPL = new Set(['r-vma-1000','r-3030','r-pyr', 't-swim-ef','t-swim-seuil','s-pyr', 't-bike-ef','t-bike-ss','t-bike-pma']);
-function licFor(std, extra){ return Object.assign({std, features:new Set(std ? STD_FEATURES : FREE_FEATURES), status:'gratuit', share:false}, extra || {}); }
-let LIC = licFor(false);
+const TIER_FEATURES = {
+  gratuit: ['agenda','simple','bilan','stats','fileImport','profil','freeLib'],
+  standard: Object.keys(FEATURES).filter(f => f !== 'customPlans'),
+  coach: Object.keys(FEATURES)
+};
+const FREE_FEATURES = TIER_FEATURES.gratuit;
+// Basic : 3 séances débutant par discipline
+const FREE_TPL = new Set(['x-run-6','r-seuil-deb','r-3030', 'b-ef-1h','b-cadence','b-seuil-deb', 's-tech-deb','s-ef-2000','s-vit-deb', 'g-pdc','x-strength-111','x-strength-119']);
+function licFor(st, extra){ const tier = st === 'admin' ? 'coach' : (TIER_FEATURES[st] ? st : 'gratuit');
+  return Object.assign({std: tier !== 'gratuit', tier, features:new Set(TIER_FEATURES[tier]), status:st, share:false}, extra || {}); }
+let LIC = licFor('gratuit');
 const todayYmd = () => new Date().toISOString().slice(0, 10);
 const plusDays = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 const frDate = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
-// Statut d'un compte : coach, standard ou gratuit
+// Statut d'un compte : admin (rôle coach de la structure), coach (licence), standard ou gratuit (Basic)
 function subStatus(u){
   if (!u) return 'gratuit';
-  if (u.role === 'coach') return 'coach';
-  if (['standard','complete'].includes(u.license) && (!u.licenseUntil || u.licenseUntil >= todayYmd())) return 'standard';
+  if (u.role === 'coach') return 'admin';
+  const ok = !u.licenseUntil || u.licenseUntil >= todayYmd();
+  if (u.license === 'coach' && ok) return 'coach';
+  if (['standard','complete'].includes(u.license) && ok) return 'standard';
   return 'gratuit';
 }
 const hasShareOpt = u => !!u && (u.role === 'coach' || !!u.shareOption);
-const STATUS_LABEL = {coach:'Coach', standard:'Standard', gratuit:'Gratuit'};
-const STATUS_COLOR = {coach:'#1f7fbf', standard:'#2f9461', gratuit:'#7d8b99'};
+const STATUS_LABEL = {admin:'Administrateur', coach:'Coach', standard:'Standard', gratuit:'Basic'};
+const STATUS_COLOR = {admin:'#1f3f5f', coach:'#1f7fbf', standard:'#2f9461', gratuit:'#7d8b99'};
 const statusBadge = u => { const st = subStatus(u); return `<span class="stbadge" style="background:${STATUS_COLOR[st]}">${STATUS_LABEL[st]}</span>${u && u.role !== 'coach' && u.shareOption ? ' <span class="stbadge" style="background:#8e44ad">Partage</span>' : ''}`; };
-function refreshLicense(){ const st = subStatus(me); LIC = licFor(st !== 'gratuit', {status:st, share:hasShareOpt(me)}); }
+function refreshLicense(){ const st = subStatus(me); LIC = licFor(st, {share:hasShareOpt(me)}); }
 const has = f => LIC.features.has(f);
+const tierFor = f => TIER_FEATURES.standard.includes(f) ? 'standard' : 'coach';
 function lockBox(f, compact){
-  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Inclus dans l'abonnement Standard.${me && me.role !== 'coach' ? ' <a href="#" data-a="upgrade" data-v="standard">S\'abonner</a>' : ''}</span></div>`;
+  const t = tierFor(f);
+  return `<div class="lockbox${compact ? ' sm' : ''}"><b>🔒 ${esc(FEATURES[f] || f)}</b><span>Inclus dans la licence ${STATUS_LABEL[t]}.${me && me.role !== 'coach' ? ` <a href="#" data-a="upgrade" data-v="${t}">Passer en ${STATUS_LABEL[t]}</a>` : ''}</span></div>`;
 }
-const ACTION_FEAT = {newdetail:'detail', badd:'detail', todetail:'detail', savetpl:'customLib', saveplan:'customLib',
+const ACTION_FEAT = {newdetail:'detail', badd:'detail', todetail:'detail', savetpl:'customLib', saveplan:'customPlans',
   applyplan:'plans', stravasync:'stravaAuto', stravalink:'stravaAuto', expick0:'exercises', exshow:'exercises', exportfit:'watch'};
 function markLocked(){
   document.querySelectorAll('[data-a]').forEach(el => {
     const f = ACTION_FEAT[el.dataset.a];
-    if (f && !has(f)){ if (!el.classList.contains('locked')){ el.classList.add('locked'); el.title = '🔒 ' + FEATURES[f] + ' : abonnement Standard'; } }
+    if (f && !has(f)){ if (!el.classList.contains('locked')){ el.classList.add('locked'); el.title = '🔒 ' + FEATURES[f] + ' : licence ' + STATUS_LABEL[tierFor(f)]; } }
     else if (el.classList.contains('locked')) el.classList.remove('locked');
   });
 }
 let _lockRaf = 0;
 new MutationObserver(() => { if (!_lockRaf) _lockRaf = requestAnimationFrame(() => { _lockRaf = 0; markLocked(); }); }).observe(document.documentElement, {childList:true, subtree:true});
-function lockedModal(f){ openModal(`<h3>Abonnement Standard</h3>${lockBox(f)}<div style="text-align:right;margin-top:10px"><button class="btn" data-a="mclose">Fermer</button></div>`); }
+function lockedModal(f){ openModal(`<h3>Licence ${STATUS_LABEL[tierFor(f)]}</h3>${lockBox(f)}<div style="text-align:right;margin-top:10px"><button class="btn" data-a="mclose">Fermer</button></div>`); }
 const trialBar = () => '';
-// Comparatif gratuit / Standard
+// Comparatif Basic / Standard / Coach
 function offerTable(st){
-  const rows = Object.keys(FEATURES).map(f => `<tr><td>${esc(FEATURES[f])}</td><td style="text-align:center" class="${st === 'gratuit' ? 'curcol' : ''}">${FREE_FEATURES.includes(f) ? '✓' : '—'}</td><td style="text-align:center" class="${st !== 'gratuit' ? 'curcol' : ''}">✓</td></tr>`).join('');
-  return `<table class="rep lictab"><thead><tr><th></th><th style="text-align:center">Gratuit</th><th style="text-align:center">Standard</th></tr></thead><tbody>${rows}
-    <tr><td>Option : partager son entraînement avec un coach</td><td colspan="2" style="text-align:center">en option</td></tr></tbody></table>`;
+  const cur = st === 'admin' ? 'coach' : st, cols = ['gratuit','standard','coach'];
+  const rows = Object.keys(FEATURES).map(f => `<tr><td>${esc(FEATURES[f])}</td>${cols.map(c => `<td style="text-align:center" class="${cur === c ? 'curcol' : ''}">${TIER_FEATURES[c].includes(f) ? '✓' : '—'}</td>`).join('')}</tr>`).join('');
+  return `<table class="rep lictab"><thead><tr><th></th>${cols.map(c => `<th style="text-align:center" class="${cur === c ? 'curcol' : ''}">${STATUS_LABEL[c]}</th>`).join('')}</tr></thead><tbody>${rows}
+    <tr><td>Option : partager son entraînement avec un coach</td><td colspan="3" style="text-align:center">en option</td></tr></tbody></table>`;
 }
 // Écran « Abonnement » (Paramétrage)
 function aboView(aid){
   const u = getUser(aid), st = subStatus(u), mine = aid === me.id && me.role !== 'coach';
   return `<div class="pane dense"><h4>Abonnement</h4>
-    <div class="licrow"><span>${mine ? 'Votre accès' : esc(u.name)} : ${statusBadge(u)} ${st === 'standard' && u.licenseUntil ? `<span class="ztxt">jusqu'au ${frDate(u.licenseUntil)}</span>` : ''}</span>
+    <div class="licrow"><span>${mine ? 'Votre accès' : esc(u.name)} : ${statusBadge(u)} ${st !== 'gratuit' && u.licenseUntil ? `<span class="ztxt">jusqu'au ${frDate(u.licenseUntil)}</span>` : ''}</span>
       ${mine && st === 'gratuit' ? `<button class="btn primary" data-a="upgrade" data-v="standard">Passer en Standard</button>` : ''}
+      ${mine && st !== 'coach' ? `<button class="btn ${st === 'gratuit' ? '' : 'primary'}" data-a="upgrade" data-v="coach">Passer en Coach</button>` : ''}
       ${mine && !u.shareOption ? `<button class="btn" data-a="upgrade" data-v="share">Ajouter l'option partage</button>` : ''}
-      ${mine && (st === 'standard' || u.shareOption) && CFG.portailAbonnement ? `<a class="btn" href="${esc(CFG.portailAbonnement)}" target="_blank" rel="noopener">Gérer ou résilier</a>` : ''}
+      ${mine && (st !== 'gratuit' || u.shareOption) && CFG.portailAbonnement ? `<a class="btn" href="${esc(CFG.portailAbonnement)}" target="_blank" rel="noopener">Gérer ou résilier</a>` : ''}
       ${!mine && me.role === 'coach' && u.role !== 'coach' ? '<span class="ztxt">L\'accès se modifie dans l\'écran Comptes.</span>' : ''}</div>
     <div style="margin-top:8px">${offerTable(st)}</div>
   </div>`;
 }
-// Comptes (coach) : gratuit / Standard, et option partage
+// Comptes (administrateur) : Basic / Standard / Coach, et option partage
 function licSelectHTML(u){
   if (u.role === 'coach') return statusBadge(u);
+  const st = subStatus(u);
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-    <select data-lic="${u.id}" style="width:auto!important" title="Accès"><option value="basique" ${subStatus(u) === 'gratuit' ? 'selected' : ''}>Gratuit</option><option value="standard" ${subStatus(u) === 'standard' ? 'selected' : ''}>Standard</option></select>
+    <select data-lic="${u.id}" style="width:auto!important" title="Accès">${[['basique','Basic','gratuit'],['standard','Standard','standard'],['coach','Coach','coach']].map(([v, l, s]) => `<option value="${v}" ${st === s ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <label class="chk" title="Option partage avec un coach"><input type="checkbox" data-shareopt="${u.id}" ${u.shareOption ? 'checked' : ''}> Partage</label></div>`;
 }
 document.addEventListener('change', e => {
@@ -1724,6 +1810,73 @@ function installHTML(){
       <div class="ztxt">L'icône CC3S apparaît sur l'écran d'accueil ; l'application s'ouvre en plein écran, sans barre de navigateur.</div>
     </div></div>`;
 }
+/* ===================== Astuce / info à l'honneur ===================== */
+// Une info publiée par l'administrateur s'affiche en priorité ; sinon une astuce du jour, différente chaque jour.
+const TIPS_BUILTIN = [{"id": "t01", "disc": "general", "title": "La règle des 80/20", "body": "Environ 80 % de votre volume devrait se faire en endurance fondamentale (Z1) : c'est elle qui construit le moteur."}, {"id": "t02", "disc": "general", "title": "Progresser sans se blesser", "body": "N'augmentez pas votre volume de plus de 10 % d'une semaine à l'autre, et prévoyez une semaine allégée toutes les 3 ou 4 semaines."}, {"id": "t03", "disc": "recup", "title": "Le sommeil", "body": "Le sommeil est votre meilleur outil de récupération : visez 7 à 9 heures, surtout après les séances intenses."}, {"id": "t04", "disc": "nutrition", "title": "Glucides à l'effort", "body": "Au-delà d'1 h 15 d'effort, apportez 60 à 90 g de glucides par heure, en commençant dès les 20 premières minutes."}, {"id": "t05", "disc": "nutrition", "title": "Entraîner son ventre", "body": "Testez à l'entraînement les gels et boissons que vous utiliserez en course, jamais le jour J."}, {"id": "t06", "disc": "nutrition", "title": "Hydratation", "body": "Buvez par petites gorgées toutes les 10 à 15 minutes ; par forte chaleur, ajoutez du sodium à votre boisson."}, {"id": "t07", "disc": "recup", "title": "Fenêtre de récupération", "body": "Dans les 30 minutes après une séance longue ou intense : glucides + protéines (par exemple un yaourt et une banane)."}, {"id": "t08", "disc": "run", "title": "Cadence de course", "body": "Une cadence de 170 à 180 pas par minute limite le choc à chaque foulée et protège vos articulations."}, {"id": "t09", "disc": "run", "title": "Placer le fractionné", "body": "Le fractionné se fait sur des jambes fraîches : placez-le après un jour facile, jamais le lendemain d'une sortie longue."}, {"id": "t10", "disc": "bike", "title": "Vélocité", "body": "Travaillez la vélocité : 90 tr/min sur le plat économise vos jambes pour la course à pied qui suit."}, {"id": "t11", "disc": "bike", "title": "Pression des pneus", "body": "Vérifiez la pression des pneus avant chaque sortie : un pneu sous-gonflé fatigue et crève plus facilement."}, {"id": "t12", "disc": "swim", "title": "Expirer sous l'eau", "body": "En crawl, expirez complètement sous l'eau : vous n'aurez plus qu'à inspirer en tournant la tête."}, {"id": "t13", "disc": "swim", "title": "S'orienter en eau libre", "body": "En eau libre, levez les yeux toutes les 6 à 8 coulées pour garder le cap sans casser votre nage."}, {"id": "t14", "disc": "tri", "title": "Les transitions", "body": "Répétez vos transitions : 5 minutes gagnées dans le parc à vélo sans aucun effort supplémentaire."}, {"id": "t15", "disc": "tri", "title": "Les enchaînements", "body": "Les enchaînements vélo + course habituent vos jambes aux sensations de « jambes en bois » du début de course."}, {"id": "t16", "disc": "strength", "title": "Renfo anti-blessure", "body": "Deux séances courtes de renforcement par semaine (gainage, fessiers, mollets) réduisent nettement le risque de blessure."}, {"id": "t17", "disc": "strength", "title": "Gainage", "body": "Un tronc gainé transmet mieux la force : 10 minutes de gainage après le footing suffisent."}, {"id": "t18", "disc": "recup", "title": "Écouter la douleur", "body": "Une douleur qui modifie votre foulée ou persiste plus de 3 jours : on lève le pied et on consulte."}, {"id": "t19", "disc": "run", "title": "Changer de chaussures", "body": "Changez de chaussures de course tous les 600 à 800 km : l'amorti s'use avant que ça ne se voie."}, {"id": "t20", "disc": "general", "title": "Découper l'effort", "body": "Découpez une course longue en étapes (ravitaillements, kilomètres) : c'est plus facile de gérer 5 fois 8 km que 40 km."}, {"id": "t21", "disc": "run", "title": "Une sortie facile", "body": "Une sortie facile doit vraiment l'être : vous devez pouvoir parler en phrases complètes."}, {"id": "t22", "disc": "run", "title": "Le négatif split", "body": "En course, partez légèrement en dessous de votre allure cible : finir plus vite qu'on est parti est presque toujours plus rapide."}, {"id": "t23", "disc": "general", "title": "L'échauffement", "body": "15 minutes d'échauffement progressif avant une séance intense : la qualité des répétitions s'en ressent."}, {"id": "t24", "disc": "general", "title": "L'affûtage", "body": "La dernière semaine avant l'objectif, réduisez le volume de 40 à 60 % mais gardez un peu d'intensité."}, {"id": "t25", "disc": "general", "title": "Remplir son bilan", "body": "Remplissez votre bilan et votre RPE après chaque séance : votre coach ajuste le plan grâce à ces infos."}, {"id": "t26", "disc": "general", "title": "Importer son GPX", "body": "Importez votre fichier GPX dans le bilan : les temps par zone et votre FC se remplissent tout seuls."}, {"id": "t27", "disc": "run", "title": "Courir par forte chaleur", "body": "Par forte chaleur, ralentissez l'allure de 10 à 20 secondes au km et privilégiez les heures fraîches."}, {"id": "t28", "disc": "general", "title": "Courir par temps froid", "body": "Par temps froid, couvrez extrémités et tête, et allongez l'échauffement."}, {"id": "t29", "disc": "recup", "title": "Le jour off", "body": "Un jour off n'est pas un jour perdu : c'est pendant le repos que le corps s'adapte et progresse."}, {"id": "t30", "disc": "general", "title": "Un objectif par saison", "body": "Fixez-vous un objectif principal par saison : tout le plan s'organise autour de lui."}, {"id": "t31", "disc": "tri", "title": "Parc à vélo", "body": "Préparez votre emplacement de transition dans l'ordre d'utilisation : casque sur le guidon, chaussures ouvertes, dossard sur ceinture."}, {"id": "t32", "disc": "tri", "title": "Le départ natation", "body": "Placez-vous sur le côté ou à l'arrière du départ si vous débutez : moins de coups, plus de sérénité."}, {"id": "t33", "disc": "tri", "title": "Gérer le vélo", "body": "Sur un triathlon, le vélo se gère : restez en dessous de votre seuil pour garder des jambes pour la course à pied."}, {"id": "t34", "disc": "tri", "title": "La combinaison", "body": "Enfilez la combinaison néoprène en remontant bien le tissu aux épaules : vous gagnerez en amplitude de bras."}, {"id": "t35", "disc": "swim", "title": "Le pull-buoy", "body": "Le pull-buoy isole les bras et aide à sentir la bonne position du corps : utilisez-le pour travailler l'appui."}, {"id": "t36", "disc": "swim", "title": "Nager régulier", "body": "Comptez vos coups de bras par longueur : moins de coups à vitesse égale, c'est une meilleure glisse."}, {"id": "t37", "disc": "bike", "title": "Manger sur le vélo", "body": "Mangez solide en début de sortie longue, liquide et gels en fin : c'est plus facile à digérer."}, {"id": "t38", "disc": "bike", "title": "Position aéro", "body": "Une position aérodynamique tenable fait gagner plus de temps que quelques watts en plus : testez-la à l'entraînement."}, {"id": "t39", "disc": "strength", "title": "Mollets et tendons", "body": "Les montées sur pointes en excentrique protègent les tendons d'Achille des coureurs."}, {"id": "t40", "disc": "nutrition", "title": "Le petit-déjeuner de course", "body": "Prenez votre dernier repas 3 heures avant le départ, déjà testé à l'entraînement, pauvre en fibres et en graisses."}];
+const TIP_DISC = {tri:'Triathlon', swim:'Natation', bike:'Vélo', run:'Course à pied', strength:'Renforcement', nutrition:'Nutrition', recup:'Récupération', general:'Général'};
+const TIP_COLOR = {tri:'#6d4bb3', swim:'#1d7fb8', bike:'#2f8f46', run:'#d9642b', strength:'#8a5a2b', nutrition:'#c08a00', recup:'#2a9d8f', general:'#5b6573'};
+// La base d'astuces : celle du serveur si elle existe, sinon la liste intégrée
+const tipsList = () => (state && Array.isArray(state.tips) && state.tips.length) ? state.tips : TIPS_BUILTIN;
+function infoOfDay(){
+  const info = state && state.info;
+  if (info && info.body) return {kind:'info', title:info.title || 'À l\'honneur', body:info.body, link:info.link || ''};
+  const L = tipsList(), d = new Date(), n = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000), t = L[n % L.length];
+  return {kind:'tip', title:'Astuce du jour · ' + (TIP_DISC[t.disc] || 'Général') + ' — ' + t.title, body:t.body};
+}
+function infoBarHTML(){
+  if (ui.infoHidden === todayYmd()) return '';
+  const i = infoOfDay();
+  return `<div class="infobar k-${i.kind}"><span class="iic">${i.kind === 'info' ? '📣' : '💡'}</span>
+    <div class="itx"><b>${esc(i.title)}</b> ${esc(i.body)}${i.link ? ` <a href="${esc(i.link)}" target="_blank" rel="noopener">En savoir plus</a>` : ''}</div>
+    <a class="imore" data-a="tipsgo">Toutes les astuces ›</a><button class="ib" title="Masquer pour aujourd'hui" data-a="infohide">✕</button></div>`;
+}
+/* ----- Page Astuces : recherche par discipline ----- */
+function tipMatch(x){
+  const q = (ui.tipQ || '').trim().toLowerCase(), d = ui.tipDisc || '';
+  if (d && x.disc !== d) return false;
+  return !q || (x.title + ' ' + x.body).toLowerCase().includes(q);
+}
+function tipCardsHTML(){
+  const admin = me && me.role === 'coach', L = tipsList().filter(tipMatch);
+  if (!L.length) return '<p class="ztxt">Aucune astuce ne correspond à votre recherche.</p>';
+  return L.map(x => `<div class="tipc" style="border-left-color:${TIP_COLOR[x.disc] || '#5b6573'}">
+      <div class="tiph"><span class="tipb" style="background:${TIP_COLOR[x.disc] || '#5b6573'}">${TIP_DISC[x.disc] || 'Général'}</span><b>${esc(x.title)}</b>
+      ${admin ? `<span class="tipa"><button class="btn sm" title="Mettre à l'honneur sur l'agenda de tous" data-a="tiphonor" data-id="${esc(x.id)}">📣</button><button class="btn sm" title="Supprimer" data-a="tipdel" data-id="${esc(x.id)}">✕</button></span>` : ''}</div>
+      <div class="tipt">${esc(x.body)}</div></div>`).join('');
+}
+function tipsView(){
+  const admin = me && me.role === 'coach', all = tipsList();
+  const cnt = d => all.filter(x => !d || x.disc === d).length;
+  return `<section class="zone ztips"><div class="zhead">Astuces</div><div class="zbody">
+    <div class="tipsearch">
+      <select id="tip-disc"><option value="">Toutes les disciplines (${cnt('')})</option>${Object.keys(TIP_DISC).map(k => `<option value="${k}" ${ui.tipDisc === k ? 'selected' : ''}>${TIP_DISC[k]} (${cnt(k)})</option>`).join('')}</select>
+      <input id="tip-q" type="search" placeholder="Rechercher (ex. gel, transition, cadence…)" value="${esc(ui.tipQ || '')}">
+    </div>
+    <div class="tipchips">${['', ...Object.keys(TIP_DISC)].map(k => `<button class="tchip ${(ui.tipDisc || '') === k ? 'on' : ''}" data-a="tipdisc" data-id="${k}">${k ? TIP_DISC[k] : 'Toutes'}</button>`).join('')}</div>
+    <div id="tiplist" class="tiplist">${tipCardsHTML()}</div>
+    ${admin ? `<div class="pane dense tipnew"><h4>➕ Ajouter une astuce</h4>
+      <div class="infoform"><select id="tipn-disc">${Object.keys(TIP_DISC).map(k => `<option value="${k}">${TIP_DISC[k]}</option>`).join('')}</select>
+        <input id="tipn-title" placeholder="Titre (ex. Le ravitaillement)">
+        <textarea id="tipn-body" rows="2" placeholder="Texte de l'astuce"></textarea>
+        <div><button class="btn sm primary" data-a="tipadd">Ajouter à la base</button></div></div></div>` : ''}
+  </div></section>`;
+}
+function refreshTipList(){ const l = document.getElementById('tiplist'); if (l) l.innerHTML = tipCardsHTML();
+  document.querySelectorAll('.tchip').forEach(b => b.classList.toggle('on', b.dataset.id === (ui.tipDisc || ''))); }
+document.addEventListener('input', e => { if (e.target.id === 'tip-q'){ ui.tipQ = e.target.value; refreshTipList(); } });
+document.addEventListener('change', e => { if (e.target.id === 'tip-disc'){ ui.tipDisc = e.target.value; refreshTipList(); } });
+// Comptes (administrateur) : publier une info à l'honneur
+function infoAdminHTML(){
+  const i = (state && state.info) || {};
+  return `<div class="pane dense" style="margin-top:8px"><h4>📣 Info à l'honneur</h4>
+    <p class="ztxt" style="margin:0 0 6px">Affichée en haut de l'agenda de tous les utilisateurs, à la place de l'astuce du jour, jusqu'à ce que vous la retiriez.</p>
+    <div class="infoform"><input id="inf-title" placeholder="Titre (ex. Stage de Pâques)" value="${esc(i.title || '')}">
+      <textarea id="inf-body" rows="2" placeholder="Message (ex. Inscriptions ouvertes jusqu'au 15 mars…)">${esc(i.body || '')}</textarea>
+      <input id="inf-link" placeholder="Lien (facultatif)" value="${esc(i.link || '')}">
+      <div><button class="btn sm primary" data-a="infopub">Publier</button> ${i.body ? '<button class="btn sm" data-a="infodel">Retirer (revenir à l\'astuce du jour)</button>' : ''}</div></div>
+  </div>`;
+}
+
 function athleteView(){
   const aid = curAid();
   const a = getUser(aid);
@@ -1738,8 +1891,8 @@ function athleteView(){
     if (!has('stats') && !ui.ssub) ui.ssub = 'mois';
     body = subNav('ssub', [['evol','Évolution'],['mois','Bilan du mois']]) + (ui.ssub === 'mois' ? monthBilanView(aid) : (has('stats') ? statsView(aid) : lockBox('stats')));
   } else if (ui.tab === 'biblio'){
-    body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices']]) +
-      (ui.bsub === 'plans' ? libPlansView(aid) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? '' : lockBox('library', true)) + libSessionsView(aid));
+    body = subNav('bsub', [['seances','Séances types'],['plans','Plans'],['exercices','Exercices'],['astuces','Astuces']]) +
+      (ui.bsub === 'astuces' ? tipsView() : ui.bsub === 'plans' ? (has('plans') ? libPlansView(aid) : lockBox('plans')) : ui.bsub === 'exercices' ? (has('exercises') ? exercisesView() : lockBox('exercises')) : (has('library') ? '' : lockBox('library', true)) + libSessionsView(aid));
   } else if (ui.tab === 'param'){
     body = subNav('psub', [['profil','Profil & zones'],['strava','Strava'],['abo','Abonnement'],['partage','Partage'],['compte','Mon compte']]) + (ui.psub === 'partage' ? (aid === me.id ? shareView() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le partage se règle depuis le compte de la personne.</p></div>') : (ui.psub === 'compte' ? (aid === me.id ? pwFormHTML() + installHTML() : '<div class="pane dense"><p class="ztxt" style="margin:0">Le mot de passe se change depuis le compte de la personne.</p></div>') : ui.psub === 'strava' ? (has('stravaAuto') ? stravaView(aid) : lockBox('stravaAuto')) : ui.psub === 'abo' ? aboView(aid) : profileView(aid)));
   } else body = weekPage(aid);
@@ -1748,7 +1901,9 @@ function athleteView(){
       ${[['agenda','Semaine'],['stats','Statistiques'],['biblio','Bibliothèque'],['param','Paramétrage']].map(([k, l]) =>
         `<button class="tab ${ui.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}">${l}</button>`).join('')}
     </div>
-    ${body}`;
+    ${body}
+    <nav class="botnav">${[['agenda','📅','Semaine'],['stats','📈','Stats'],['biblio','📚','Biblio'],['param','⚙️','Réglages']].map(([k, ic, l]) =>
+      `<button class="${ui.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}"><span class="bi">${ic}</span><span class="bl">${l}</span></button>`).join('')}</nav>`;
 }
 
 function monthNav(){
@@ -1843,6 +1998,18 @@ function chipInner(s){
   return `${canEdit(s) ? `<span class="vchk ${done?'on':''}" title="${done?'Séance validée — cliquer pour annuler':'Valider la séance réalisée'}" data-a="validate" data-id="${s.id}">✓</span>` : ''}<div class="t" style="color:${sp.color}">${icon(s.sport, 12)}${esc(s.title || sp.label)}</div>
     <div class="m"><span>${s.optional ? '<span class="fac" title="Séance facultative">☆</span>' : '<span class="obl" title="Séance obligatoire">★</span>'} ${chipMsgIcon(s)}${fmtC(sum(plannedZones(s)))}</span>${done ? `<span class="done">✓ ${fmtC(sum(realZones(s)))}</span>` : ''}</div>`;
 }
+// Totaux de la semaine affichés à droite de l'agenda (le graphique reste dans Statistiques)
+function weekSide(aid){
+  const real = weekTable(aid, ui.week, 'realise'), plan = weekTable(aid, ui.week, 'prevu');
+  const spT = (t, sp) => ZONES.reduce((a, z) => a + t[z][sp], 0);
+  const sports = SPORT_KEYS.filter(sp => spT(real.t, sp) || spT(plan.t, sp));
+  return `<div class="wsh">Total semaine</div>
+    <div class="wsl big"><span>Réalisé</span><b>${fmtC(tTotal(real.t))}</b></div>
+    <div class="wsl"><span>Prévu</span><b>${fmtC(tTotal(plan.t))}</b></div>
+    <div class="wsl"><span>Séances</span><b>${seancesTxt(plan.list)}</b></div>
+    <div class="wsl"><span>Jours off</span><b>${real.off}</b></div>
+    ${sports.length ? `<div class="wssp">${sports.map(sp => `<div class="wsl sp" style="color:${SPORTS[sp].color}"><span>${icon(sp, 12)} ${SPORTS[sp].label}</span><b>${fmtC(spT(real.t, sp))}<small> / ${fmtC(spT(plan.t, sp))}</small></b></div>`).join('')}</div>` : ''}`;
+}
 function weekMini(aid){
   const real = weekTable(aid, ui.week, 'realise'), plan = weekTable(aid, ui.week, 'prevu');
   const shown = ui.mode === 'prevu' ? plan : real, done = plan.list.filter(isDone).length;
@@ -1870,13 +2037,10 @@ function weekPage(aid){
     </div>`;
   }
   const s = ui.sessionId ? getSession(ui.sessionId) : null;
-  return `<section class="zone zweek"><div class="zhead"><span class="ztitle">Semaine</span></div><div class="zbody">
+  return `${infoBarHTML()}<section class="zone zweek"><div class="zhead"><span class="ztitle">Semaine</span></div><div class="zbody">
       ${weekNav()}
-      <div class="ag">${cols}</div>
+      <div class="agrow"><div class="ag">${cols}</div><aside class="wside" id="wkbilan">${weekSide(aid)}</aside></div>
       <div class="hint">Glissez une séance sur un autre jour pour la déplacer (Ctrl ou Alt enfoncé pour la copier).</div>
-    </div></section>
-    <section class="zone zrecap"><div class="zhead"><span class="ztitle">Récap</span></div><div class="zbody">
-      <div class="wkb" id="wkbilan">${weekMini(aid)}</div>
     </div></section>
     <section class="zone zsess"><div class="zhead"><span class="ztitle">Séance</span></div><div class="zbody">
       ${s ? detailHTML(s) : '<div class="pane empty">Aucune séance cette semaine. Utilisez « + » sur un jour pour en créer une.</div>'}
@@ -1972,6 +2136,20 @@ function asTarget(u, t){
   const vma = u ? refOf(u, 'run') : null, a = AS_TYPES.find(x => x[0] === t); if (!vma || !a) return '';
   const sec = Math.round(3600 / (vma * a[2] / 100)); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
 }
+// Bilan : nutrition pendant la séance (ce qui a été mangé, glucides par heure)
+function nutTotalTxt(s){
+  const g = parseFloat(String(s.bilan.cho || '').replace(',', '.')), sec = sum(realZones(s)) || sum(plannedZones(s)), h = sec / 3600;
+  return g > 0 && h > 0 ? `≈ ${Math.round(g * h)} g sur ${fmtC(sec)}` : '';
+}
+function nutHTML(s, ro){
+  const bl = s.bilan;
+  return `<div class="lab">Nutrition</div>
+    <div class="nutbox">
+      <input data-f="bnut" value="${esc(bl.nut || '')}" placeholder="Ce que j'ai mangé (gels, barres, boisson…)" ${ro}>
+      <span class="nutg"><input data-f="bcho" inputmode="decimal" value="${esc(bl.cho || '')}" placeholder="0" ${ro}><span class="ztxt">g glucides / h</span></span>
+      <span class="ztxt" id="nuttot">${nutTotalTxt(s)}</span>
+    </div>`;
+}
 function asHTML(s, ro){
   if (s.sport !== 'run') return '';
   const rows = s.bilan.as || [], u = getUser(s.athleteId);
@@ -2047,6 +2225,7 @@ function detailHTML(s){
         <label class="lk" style="cursor:pointer;display:inline-block" title="Remplit ce bilan à partir d'un fichier de montre ou de Strava">📂 Importer un fichier GPX / TCX<input type="file" id="bilanfile" accept=".gpx,.tcx" style="display:none"></label>`}
       <div class="lab">RPE</div>
       <div class="rp10">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${String(bl.rpe)===String(n)?'on':''}" data-a="rpe" data-v="${n}" ${ro}>${n}</button>`).join('')}</div>
+      ${nutHTML(s, ro)}
       ${asHTML(s, ro)}
       <div class="lab">Commentaire</div>
       <textarea rows="3" data-f="bcomment" placeholder="Sensations, remarques… (votre coach est prévenu)" ${ro}>${esc(bl.comment)}</textarea>
@@ -2615,16 +2794,14 @@ function genDefaults(){
   if (!PLAN_SPECS[g.type][g.obj]) g.obj = GEN_OBJ[g.type][0][0];
   return g;
 }
-// Offre gratuite : 3 plans seulement (clé discipline/objectif/niveau)
-const FREE_PLANS = new Set(['run/5k/deb', 'run/10k/deb', 'tri/xs/deb']);
+// Plans : Standard applique les plans du catalogue tels quels ; Coach peut les personnaliser et enregistrer les siens
 const planFull = t => t === 'tri' ? has('plansTri') : has('plans');
-const planOk = (t, o, l) => planFull(t) || FREE_PLANS.has(`${t}/${o}/${l}`);
-const planAllowed = t => planFull(t) || [...FREE_PLANS].some(k => k.startsWith(t + '/'));
-// en gratuit, le plan affiché est forcément l'un des 3 plans offerts, avec sa durée d'origine
+const planOk = (t, o, l) => planFull(t);
+const planAllowed = t => planFull(t);
+// sans personnalisation : durée et nombre de séances d'origine du plan choisi
 function fitFreePlan(g){
-  if (planOk(g.type, g.obj, g.level) && (planFull(g.type) || true)) { if (!planFull(g.type)){ const P = PLAN_SPECS[g.type][g.obj], i = LEVELS.findIndex(l => l[0] === g.level); g.weeks = P.w[i]; g.per = P.per[i]; } return g; }
-  const [t, o, l] = [...FREE_PLANS][0].split('/'), P = PLAN_SPECS[t][o], i = LEVELS.findIndex(x => x[0] === l);
-  return Object.assign(g, {type:t, obj:o, level:l, weeks:P.w[i], per:P.per[i]});
+  if (!has('customPlans') && PLAN_SPECS[g.type] && PLAN_SPECS[g.type][g.obj]){ const P = PLAN_SPECS[g.type][g.obj], i = Math.max(0, LEVELS.findIndex(l => l[0] === g.level)); g.weeks = P.w[i]; g.per = P.per[i]; }
+  return g;
 }
 function generatorHTML(){
   const g = fitFreePlan(genDefaults()), plan = generatePlan(g), P = planSpec(g);
@@ -2636,12 +2813,12 @@ function generatorHTML(){
   return `<div class="pane dense">
     <div class="gtitle"><b>${esc(PLAN_DISC.find(d => d[0] === g.type)[1])} · ${esc(P.label)} · ${LEVELS.find(l => l[0] === g.level)[1]}</b> <span class="ztxt">${esc(P.d)}</span></div>
     <div class="gen">
-      ${planFull(g.type) ? '' : '<div class="lockbox sm" style="grid-column:1/-1"><b>🎁 Plan offert</b><span>Vous pouvez choisir la date de début. Les autres plans et les réglages sont inclus dans l\'abonnement Standard.</span></div>'}
-      <div><label>Discipline</label><select data-g="type" ${planFull(g.type) ? '' : 'disabled'}>${opt(PLAN_DISC.filter(([t]) => planAllowed(t)), g.type)}</select></div>
-      <div><label>Objectif</label><select data-g="obj" ${planFull(g.type) ? '' : 'disabled'}>${opt(GEN_OBJ[g.type], g.obj)}</select></div>
-      <div><label>Niveau</label><select data-g="level" ${planFull(g.type) ? '' : 'disabled'}>${opt(LEVELS.map(l=>[l[0],l[1]]), g.level)}</select></div>
-      <div><label>Semaines</label><input type="number" min="2" max="30" data-g="weeks" value="${g.weeks}" ${planFull(g.type) ? '' : 'disabled'} style="width:60px!important"></div>
-      <div><label>Séances / sem.</label><select data-g="per" ${planFull(g.type) ? '' : 'disabled'}>${opt([3,4,5,6,7].map(n=>[String(n),String(n)]), g.per)}</select></div>
+      ${has('customPlans') ? '' : '<div class="lockbox sm" style="grid-column:1/-1"><b>🔒 Personnaliser le plan</b><span>Avec votre licence, choisissez un plan dans le tableau et sa date de début. Modifier la durée ou le nombre de séances et enregistrer vos propres plans : licence Coach.</span></div>'}
+      <div><label>Discipline</label><select data-g="type">${opt(PLAN_DISC.filter(([t]) => planAllowed(t)), g.type)}</select></div>
+      <div><label>Objectif</label><select data-g="obj">${opt(GEN_OBJ[g.type], g.obj)}</select></div>
+      <div><label>Niveau</label><select data-g="level">${opt(LEVELS.map(l=>[l[0],l[1]]), g.level)}</select></div>
+      <div><label>Semaines</label><input type="number" min="2" max="30" data-g="weeks" value="${g.weeks}" ${has('customPlans') ? '' : 'disabled'} style="width:60px!important"></div>
+      <div><label>Séances / sem.</label><select data-g="per" ${has('customPlans') ? '' : 'disabled'}>${opt([3,4,5,6,7].map(n=>[String(n),String(n)]), g.per)}</select></div>
       <div><label>Début (lundi)</label><input type="date" data-g="start" value="${g.start}"></div>
       <div style="text-align:right"><button class="btn sm primary" data-a="genapply">Appliquer les ${total} séances</button></div>
     </div>
@@ -2730,10 +2907,10 @@ function libPlansView(aid){
   if (!PLAN_SPECS[ui.pdisc]) ui.pdisc = g.type;
   const D = ui.pdisc, nAll = Object.values(PLAN_SPECS).reduce((a, o) => a + Object.keys(o).length * LEVELS.length, 0);
   const tabs = `<div class="filt pdisc">${PLAN_DISC.map(([t, l]) => `<button class="${t === D ? 'on' : ''}" data-a="pdisc" data-v="${t}">${l} <small>${Object.keys(PLAN_SPECS[t]).length * LEVELS.length}</small></button>`).join('')}</div>`;
-  const matrix = `${planFull(D) ? '' : lockBox(D === 'tri' ? 'plansTri' : 'plans', true)}<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
+  const matrix = `<table class="pmx"><thead><tr><th></th>${LEVELS.map(l => `<th>${l[1]}</th>`).join('')}</tr></thead><tbody>
     ${Object.entries(PLAN_SPECS[D]).map(([obj, P]) => `<tr><th style="white-space:nowrap">${esc(P.label)}<div style="text-transform:none;font-weight:400">${esc(P.d)}</div></th>${LEVELS.map(([lv], i) => {
       const on = g.type === D && g.obj === obj && g.level === lv && +g.weeks === P.w[i] && +g.per === P.per[i];
-      const ok = planOk(D, obj, lv), free = !planFull(D) && ok;
+      const ok = planOk(D, obj, lv), free = false;
       return `<td><button class="${on ? 'on' : ''} ${ok ? '' : 'plock'}" data-a="preset" data-t="${D}" data-o="${obj}" data-l="${lv}"><b>${ok ? '' : '🔒 '}${P.w[i]} semaines${free ? ' <span class="ffree">offert</span>' : ''}</b>${P.per[i]} séances / sem.</button></td>`; }).join('')}</tr>`).join('')}
   </tbody></table>`;
   const plans = state.library.plans.map(p => {
@@ -3042,7 +3219,7 @@ function devFormHTML(){
       <div><label>Prénom et nom</label><input id="dv-name"></div>
       <div><label>Identifiant</label><input id="dv-login" autocapitalize="none" placeholder="ex. julie.m"></div>
       <div><label>Mot de passe provisoire</label><input id="dv-pw" placeholder="8 caractères min."></div>
-      <div><label>Accès</label><select id="dv-lic"><option value="basique">Gratuit</option><option value="standard">Standard (offert)</option></select><label class="chk" style="margin-top:3px"><input type="checkbox" id="dv-share"> option partage</label></div>
+      <div><label>Accès</label><select id="dv-lic"><option value="basique">Basic</option><option value="standard">Standard (offert)</option><option value="coach">Coach (offert)</option></select><label class="chk" style="margin-top:3px"><input type="checkbox" id="dv-share"> option partage</label></div>
       <div><button class="btn primary" data-a="devcreate" ${ui.devBusy ? 'disabled' : ''}>${ui.devBusy ? 'Création…' : 'Créer le compte'}</button></div>
     </div>
     <p class="ztxt" style="margin:6px 0 0;font-size:.78rem">Le compte est validé immédiatement. La personne se connecte avec son identifiant et peut changer son mot de passe dans Paramétrage → Mon compte. Mot de passe oublié : bouton 🔑 dans la liste.</p>
@@ -3057,6 +3234,7 @@ async function devCall(body){
 function accountsView(){
   const others = state.users.filter(u => u.id !== me.id).sort((a,b) => (a.approved - b.approved) || a.name.localeCompare(b.name));
   return `<h2 style="margin-top:6px">Comptes</h2>
+  ${infoAdminHTML()}
   ${devFormHTML()}
   
   <p class="ztxt">Les adhérents créent leur compte eux-mêmes (avec Strava ou un e-mail) : il est actif tout de suite avec un mois d'essai gratuit, puis 20 € par mois sans engagement. Ici, vous pouvez marquer un compte comme abonné (abonnement offert ou payé hors ligne) ou prolonger son essai en changeant la date.</p>
@@ -3096,8 +3274,9 @@ function refreshSessionBits(s){
   s.blocks.forEach((b,i)=>{ const el = document.getElementById('bdur-'+i); if (el) el.textContent = fmtC(blockDur(b, s));
     b.steps.forEach((st,j) => { const e2 = document.getElementById(`est-${i}-${j}`); if (e2) e2.textContent = estTxt(st, s); }); });
   const sg = document.getElementById('sgraph'); if (sg) sg.innerHTML = sessionGraph(s, 46, true);
-  const wb = document.getElementById('wkbilan'); if (wb) wb.innerHTML = weekMini(s.athleteId);
+  const wb = document.getElementById('wkbilan'); if (wb) wb.innerHTML = weekSide(s.athleteId);
   const bt = document.getElementById('bztot'); if (bt) bt.innerHTML = bilanTotals(s);
+  const nt = document.getElementById('nuttot'); if (nt) nt.textContent = nutTotalTxt(s);
   const ch = document.getElementById('chip-'+s.id); if (ch) ch.innerHTML = chipInner(s);
 }
 
@@ -3118,6 +3297,8 @@ document.addEventListener('input', e => {
   else if (f === 'simple'){ const st = s.blocks[0].steps[+el.dataset.i]; if (st) st.dur = secToDur(parseHM(el.value)); }
   else if (f === 'bz'){ s.bilan.zones[el.dataset.z][el.dataset.k] = el.value; s.bilan.edited = true; }
   else if (f === 'bcomment') s.bilan.comment = el.value;
+  else if (f === 'bnut') s.bilan.nut = el.value;
+  else if (f === 'bcho'){ s.bilan.cho = el.value; const t = document.getElementById('nuttot'); if (t) t.textContent = nutTotalTxt(s); }
   else if (f === 'bas'){ s.bilan.as = s.bilan.as || []; const i = +el.dataset.i; while (s.bilan.as.length <= i) s.bilan.as.push({t:'', dur:'', pace:''}); s.bilan.as[i][el.dataset.k] = el.value; s.bilan.edited = true;
     if (el.dataset.k === 't'){ const inp = document.querySelector(`[data-f="bas"][data-i="${i}"][data-k="pace"]`), tg = asTarget(getUser(s.athleteId), el.value); if (inp) inp.placeholder = tg ? 'cible ' + tg : 'allure'; } }
   else return;
@@ -3352,7 +3533,7 @@ document.addEventListener('click', e => {
       devCall({action:'setpassword', user_id:el.dataset.id, password:pw}).then(() => { closeModal(); toast('Mot de passe modifié : communiquez-le à la personne'); }).catch(err => toast('Échec : ' + (err.message || err)));
       break; }
     case 'upgrade': {
-      const url = el.dataset.v === 'share' ? CFG.paiementPartage : (CFG.paiementAbonnement || CFG.paiementStandard || CFG.paiementComplete);
+      const v = el.dataset.v, url = v === 'share' ? CFG.paiementPartage : v === 'coach' ? CFG.paiementCoach : (CFG.paiementAbonnement || CFG.paiementStandard);
       if (!url){ toast('Le paiement en ligne n\'est pas encore ouvert : contactez votre coach.'); break; }
       location.href = url + (url.includes('?') ? '&' : '?') + 'client_reference_id=' + encodeURIComponent(me.id);
       break; }
@@ -3375,6 +3556,23 @@ document.addEventListener('click', e => {
     case 'install': if (_installEvt){ _installEvt.prompt(); _installEvt.userChoice.finally(() => { _installEvt = null; render(); }); } break;
     case 'installinfo': e.preventDefault(); installInfo(); break;
     case 'copyurl': navigator.clipboard && navigator.clipboard.writeText(location.href.split('#')[0]).then(() => toast('Adresse copiée')); break;
+    case 'infohide': ui.infoHidden = todayYmd(); render(); break;
+    case 'tipsgo': ui.tab = 'biblio'; ui.bsub = 'astuces'; render(); break;
+    case 'tipdisc': ui.tipDisc = el.dataset.id; { const sel = document.getElementById('tip-disc'); if (sel) sel.value = ui.tipDisc; } refreshTipList(); break;
+    case 'tipadd': {
+      const v = id => (document.getElementById(id).value || '').trim(), row = {id:'u' + Date.now().toString(36), disc:v('tipn-disc'), title:v('tipn-title'), body:v('tipn-body')};
+      if (!row.title || !row.body){ toast('Titre et texte obligatoires'); break; }
+      sb.from('tips').insert(row).then(({error}) => { if (error) toast('Échec : ' + error.message); else { state.tips = [row, ...tipsList().filter(x => x.id !== row.id)]; render(); toast('Astuce ajoutée'); } }); break; }
+    case 'tipdel': { const id = el.dataset.id; if (!confirm('Supprimer cette astuce ?')) break;
+      sb.from('tips').delete().eq('id', id).then(({error}) => { if (error) toast('Échec : ' + error.message); else { state.tips = tipsList().filter(x => x.id !== id); render(); toast('Astuce supprimée'); } }); break; }
+    case 'tiphonor': { const x = tipsList().find(y => y.id === el.dataset.id); if (!x) break;
+      const row = {id:'main', title:(TIP_DISC[x.disc] || '') + ' — ' + x.title, body:x.body, link:'', updated_at:new Date().toISOString()};
+      sb.from('infos').upsert(row).then(({error}) => { if (error) toast('Échec : ' + error.message); else { state.info = row; ui.infoHidden = null; toast('Astuce mise à l\'honneur sur l\'agenda de tous'); } }); break; }
+    case 'infopub': {
+      const v = id => document.getElementById(id).value.trim(), row = {id:'main', title:v('inf-title'), body:v('inf-body'), link:v('inf-link'), updated_at:new Date().toISOString()};
+      if (!row.body){ toast('Écrivez un message'); break; }
+      sb.from('infos').upsert(row).then(({error}) => { if (error) toast('Échec : ' + error.message); else { state.info = row; render(); toast('Info publiée pour tous les utilisateurs'); } }); break; }
+    case 'infodel': sb.from('infos').delete().eq('id', 'main').then(({error}) => { if (error) toast('Échec : ' + error.message); else { state.info = null; render(); toast('Info retirée'); } }); break;
     case 'viewas': ui.viewAs = el.dataset.id; ui.sessionId = null; render(); break;
     case 'exportfit': if (s) exportFit(s); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
@@ -3486,6 +3684,7 @@ document.addEventListener('change', e => {
   }
   if (el.dataset && el.dataset.g){
     const g = genDefaults(); g[el.dataset.g] = el.value;
+    if ((el.dataset.g === 'weeks' || el.dataset.g === 'per') && !has('customPlans')) return;
     if (el.dataset.g === 'type'){ g.obj = GEN_OBJ[g.type][0][0]; ui.pdisc = g.type; }
     render();
   }
