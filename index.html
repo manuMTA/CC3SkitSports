@@ -529,6 +529,13 @@ table.it td.na{color:#c3ccd5}
 .rs{display:inline;line-height:1.7}.rd{font-weight:700;margin-right:4px}.rs .ilab{margin-right:2px}
 .ri{color:#3a4a58}.rp{color:var(--accent)}.rc{color:var(--muted)}.rx{color:#1d2a36}.rplus{color:#9aa7b3;margin:0 5px}
 @media (max-width:600px){.rb{grid-template-columns:1fr}.rdu{text-align:left}}
+.asbox{display:flex;flex-direction:column;gap:4px}
+.asrow{display:flex;gap:5px;align-items:center}
+.asrow select{width:auto!important;flex:1 1 auto;min-width:0}.asrow input{width:64px!important;flex:0 0 64px}.asrow .ztxt{font-size:.72rem}
+.asstat{margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto}
+.asstat.empty{padding:5px 10px;font-size:.76rem;color:var(--muted)}
+.asstat table.stt th,.asstat table.stt td{padding:2px 8px}
+.asdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 </style>
 </head>
 <body>
@@ -1751,7 +1758,8 @@ function monthBilanView(aid){
           <div class="bar" style="width:${Math.max(2, tot/maxW*100).toFixed(1)}%">${SPORT_KEYS.map(sp=>{const v=spTot(w.r.t,sp);return v?`<div title="${SPORTS[sp].label} ${fmtC(v)}" style="flex:${v};background:${SPORTS[sp].color}"></div>`:''}).join('')}</div>
           <span class="n">${fmtC(tot)}</span><span class="o">${w.r.off} j</span></div>`; }).join('')}
       </div>
-    </div>`;
+    </div>
+    ${asStatsHTML(aid, start, end)}`;
 }
 
 /* ---------- Séance obligatoire / facultative, enchaînements ---------- */
@@ -1905,6 +1913,25 @@ function readPlanHTML(s){
     ${rows || '<div class="empty">Aucun contenu prévu.</div>'}
   </div>`;
 }
+/* ---------- Bilan : séance à allure spécifique (VMA, AS10, AS21, AS42) ---------- */
+const AS_TYPES = [['VMA','VMA',100], ['AS10','AS10 (10 km)',90], ['AS21','AS21 (semi)',85], ['AS42','AS42 (marathon)',80]];
+const AS_COLOR = {VMA:'#c0392b', AS10:'#d9822b', AS21:'#b7950b', AS42:'#2f9461'};
+// allure cible indicative d'après la VMA du profil (% VMA usuels)
+function asTarget(u, t){
+  const vma = u ? refOf(u, 'run') : null, a = AS_TYPES.find(x => x[0] === t); if (!vma || !a) return '';
+  const sec = Math.round(3600 / (vma * a[2] / 100)); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;
+}
+function asHTML(s, ro){
+  if (s.sport !== 'run') return '';
+  const rows = s.bilan.as || [], u = getUser(s.athleteId);
+  return `<div class="lab">Séance allure</div>
+    <div class="asbox">${(rows.length ? rows : [{t:'', dur:'', pace:''}]).map((r, i) => `<div class="asrow">
+      <select data-f="bas" data-i="${i}" data-k="t" ${ro}><option value="">Type…</option>${AS_TYPES.map(([k, l]) => `<option value="${k}" ${r.t === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <input data-f="bas" data-i="${i}" data-k="dur" value="${esc(r.dur || '')}" placeholder="durée" ${ro}>
+      <input data-f="bas" data-i="${i}" data-k="pace" value="${esc(r.pace || '')}" placeholder="${r.t && asTarget(u, r.t) ? 'cible ' + asTarget(u, r.t) : 'allure'}" ${ro}><span class="ztxt">/km</span>
+      ${ro || !rows.length ? '' : `<button class="ib red" title="Supprimer" data-a="asdel" data-i="${i}">✕</button>`}</div>`).join('')}
+      ${ro ? '' : '<button class="lk" data-a="asadd">+ autre allure</button>'}</div>`;
+}
 function detailHTML(s){
   const ro = canEdit(s) ? '' : 'disabled';
   if (canEdit(s) && (ensureInts(s) | ensurePrefill(s))) save();
@@ -1969,6 +1996,7 @@ function detailHTML(s){
         <label class="lk" style="cursor:pointer;display:inline-block" title="Remplit ce bilan à partir d'un fichier de montre ou de Strava">📂 Importer un fichier GPX / TCX<input type="file" id="bilanfile" accept=".gpx,.tcx" style="display:none"></label>`}
       <div class="lab">RPE</div>
       <div class="rp10">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${String(bl.rpe)===String(n)?'on':''}" data-a="rpe" data-v="${n}" ${ro}>${n}</button>`).join('')}</div>
+      ${asHTML(s, ro)}
       <div class="lab">Commentaire</div>
       <textarea rows="3" data-f="bcomment" placeholder="Sensations, remarques… (votre coach est prévenu)" ${ro}>${esc(bl.comment)}</textarea>
       ${threadHTML(s)}
@@ -1984,13 +2012,34 @@ const STACK = ['run','swim','bike','strength'];          // ordre d'empilement v
 const LONG3 = ['run','bike','swim'];
 const LINE_C = {run:'#1f6b45', bike:'#a35a14', swim:'#155d8c'};  // teinte plus foncée du sport pour la ligne « plus longue »
 function sessDur(s, mode){ return mode === 'prevu' ? sum(plannedZones(s)) : (isDone(s) ? sum(realZones(s)) : 0); }
+// Allures spécifiques saisies dans les bilans, sur une période
+const asPace = sec => sec ? `${Math.floor(sec/60)}:${String(Math.round(sec%60)).padStart(2,'0')}` : '–';
+function asStats(aid, from, to){
+  const out = Object.fromEntries(AS_TYPES.map(([k]) => [k, {sec:0, n:0, w:0, best:0, last:'', lastPace:0}]));
+  state.sessions.filter(s => s.athleteId === aid && s.date >= from && s.date <= to && s.bilan && Array.isArray(s.bilan.as))
+    .sort((a, b) => a.date.localeCompare(b.date)).forEach(s => s.bilan.as.forEach(r => {
+      const o = out[r.t]; if (!o) return; const d = parseMS(r.dur), pc = parseMS(r.pace);
+      if (!d && !pc) return; o.n++; o.sec += d;
+      if (pc){ o.w += pc * (d || 1); o.wd = (o.wd || 0) + (d || 1); o.best = o.best ? Math.min(o.best, pc) : pc; o.last = s.date; o.lastPace = pc; }
+    }));
+  Object.values(out).forEach(o => o.avg = o.wd ? o.w / o.wd : 0);
+  return out;
+}
+function asStatsHTML(aid, from, to){
+  const st = asStats(aid, from, to), used = AS_TYPES.filter(([k]) => st[k].n);
+  if (!used.length) return `<div class="asstat empty">Séances allure (VMA, AS10, AS21, AS42) : aucune saisie sur la période. Elles se renseignent dans le bilan des séances de course.</div>`;
+  return `<div class="asstat"><table class="stt"><thead><tr><th>Allure</th><th>Temps</th><th>Séances</th><th>Allure moy.</th><th>Meilleure</th><th>Dernière</th></tr></thead><tbody>
+    ${used.map(([k, l]) => { const o = st[k]; return `<tr><td><span class="asdot" style="background:${AS_COLOR[k]}"></span><b>${k}</b></td><td>${fmtC(o.sec)}</td><td>${o.n}</td><td><b>${asPace(o.avg)}</b>/km</td><td>${asPace(o.best)}/km</td><td>${asPace(o.lastPace)}/km${o.last ? ` <span class="ztxt">(${parseYmd(o.last).getDate()} ${MONTHS[parseYmd(o.last).getMonth()]})</span>` : ''}</td></tr>`; }).join('')}
+  </tbody></table></div>`;
+}
 function weeklyStats(aid, endWeek, n, mode){
   const out = [];
   for (let i = n - 1; i >= 0; i--){
     const ws = addDays(endWeek, -7*i), list = sessionsOf(aid, ws);
     const tot = {run:0, bike:0, swim:0, strength:0}, lng = {run:0, bike:0, swim:0};
     list.forEach(s => { const d = sessDur(s, mode); tot[s.sport] += d; if (lng[s.sport] !== undefined) lng[s.sport] = Math.max(lng[s.sport], d); });
-    out.push({ws, tot, lng, total: tot.run + tot.bike + tot.swim + tot.strength});
+    const as = Object.fromEntries(AS_TYPES.map(([k]) => [k, 0])); list.forEach(s => ((s.bilan && s.bilan.as) || []).forEach(r => { if (as[r.t] !== undefined) as[r.t] += parseMS(r.dur); }));
+    out.push({ws, tot, lng, as, total: tot.run + tot.bike + tot.swim + tot.strength});
   }
   return out;
 }
@@ -2038,7 +2087,7 @@ function statsView(aid){
   const maxL = k => Math.max(0, ...data.map(d => d.lng[k]));
   const cur = mondayOf(todayStr());
   const rows = data.slice().reverse().map(d => { const dt = parseYmd(d.ws);
-    return `<tr class="${d.ws === cur ? 'cur' : ''}"><td>${dt.getDate()} ${MONTHS[dt.getMonth()]}</td>${STACK.map(k => `<td>${fmtC(d.tot[k])}</td>`).join('')}<td><b>${fmtC(d.total)}</b></td>${LONG3.map(k => `<td>${fmtC(d.lng[k])}</td>`).join('')}</tr>`; }).join('');
+    return `<tr class="${d.ws === cur ? 'cur' : ''}"><td>${dt.getDate()} ${MONTHS[dt.getMonth()]}</td>${STACK.map(k => `<td>${fmtC(d.tot[k])}</td>`).join('')}<td><b>${fmtC(d.total)}</b></td>${AS_TYPES.map(([k]) => `<td>${fmtC(d.as[k])}</td>`).join('')}${LONG3.map(k => `<td>${fmtC(d.lng[k])}</td>`).join('')}</tr>`; }).join('');
   const kstrip = `<div class="kstrip"><span>Total ${n} sem. <b>${fmtC(tot)}</b></span><span>Moy. / sem. <b>${fmtC(tot / n)}</b></span>${LONG3.map(k => `<span style="color:${SPORTS[k].color}">${icon(k, 12)} + longue <b>${fmtC(maxL(k))}</b></span>`).join('')}</div>`;
   return `<div class="row" style="margin:2px 0 6px;gap:8px">
       <div class="seg"><button class="${mode==='realise'?'on':''}" data-a="mode" data-v="realise">Réalisé</button><button class="${mode==='prevu'?'on':''}" data-a="mode" data-v="prevu">Prévu</button></div>
@@ -2053,11 +2102,12 @@ function statsView(aid){
       <div class="tip" id="stattip"></div>
     </div>
     ${kstrip}
+    ${asStatsHTML(aid, data[0].ws, addDays(end, 6))}
     <details class="stdet"><summary>Détail par semaine (tableau)</summary>
     <div class="pane" style="padding:0;overflow:auto;margin-top:4px"><table class="stt">
-      <thead><tr><th>Semaine du</th>${STACK.map(k => `<th>${SPORTS[k].label}</th>`).join('')}<th>Total</th>${LONG3.map(k => `<th>+ longue ${SPORTS[k].label}</th>`).join('')}</tr></thead>
+      <thead><tr><th>Semaine du</th>${STACK.map(k => `<th>${SPORTS[k].label}</th>`).join('')}<th>Total</th>${AS_TYPES.map(([k]) => `<th>${k}</th>`).join('')}${LONG3.map(k => `<th>+ longue ${SPORTS[k].label}</th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td>Total</td>${STACK.map(k => `<td>${fmtC(sumK(k))}</td>`).join('')}<td>${fmtC(tot)}</td>${LONG3.map(k => `<td>${fmtC(maxL(k))}</td>`).join('')}</tr></tfoot>
+      <tfoot><tr><td>Total</td>${STACK.map(k => `<td>${fmtC(sumK(k))}</td>`).join('')}<td>${fmtC(tot)}</td>${AS_TYPES.map(([k]) => `<td>${fmtC(data.reduce((a, d) => a + d.as[k], 0))}</td>`).join('')}${LONG3.map(k => `<td>${fmtC(maxL(k))}</td>`).join('')}</tr></tfoot>
     </table></div></details>`;
 }
 // Infobulle du graphique
@@ -3017,6 +3067,8 @@ document.addEventListener('input', e => {
   else if (f === 'simple'){ const st = s.blocks[0].steps[+el.dataset.i]; if (st) st.dur = secToDur(parseHM(el.value)); }
   else if (f === 'bz'){ s.bilan.zones[el.dataset.z][el.dataset.k] = el.value; s.bilan.edited = true; }
   else if (f === 'bcomment') s.bilan.comment = el.value;
+  else if (f === 'bas'){ s.bilan.as = s.bilan.as || []; const i = +el.dataset.i; while (s.bilan.as.length <= i) s.bilan.as.push({t:'', dur:'', pace:''}); s.bilan.as[i][el.dataset.k] = el.value; s.bilan.edited = true;
+    if (el.dataset.k === 't'){ const inp = document.querySelector(`[data-f="bas"][data-i="${i}"][data-k="pace"]`), tg = asTarget(getUser(s.athleteId), el.value); if (inp) inp.placeholder = tg ? 'cible ' + tg : 'allure'; } }
   else return;
   save(); refreshSessionBits(s);
 });
@@ -3267,6 +3319,8 @@ document.addEventListener('click', e => {
       sb.from('shares').delete().eq('owner_id', me.id).eq('viewer_id', other).then(async ({error}) => { if (error) toast('Échec : ' + error.message); else { await loadAll(); render(); toast('Accès retiré'); } });
       break; }
     case 'editmode': if (s){ if (isReadMode(s)){ ui.sessEdit = s.id; ui.sessRead = null; } else { ui.sessRead = s.id; ui.sessEdit = null; } render(); } break;
+    case 'asadd': if (s && canEdit(s)){ s.bilan.as = s.bilan.as || []; if (!s.bilan.as.length) s.bilan.as.push({t:'', dur:'', pace:''}); s.bilan.as.push({t:'', dur:'', pace:''}); save(); render(); } break;
+    case 'asdel': if (s && canEdit(s)){ (s.bilan.as || []).splice(+el.dataset.i, 1); save(); render(); } break;
     case 'viewas': ui.viewAs = el.dataset.id; ui.sessionId = null; render(); break;
     case 'exportfit': if (s) exportFit(s); break;
     case 'profsport': ui.profSport = el.dataset.v; render(); break;
